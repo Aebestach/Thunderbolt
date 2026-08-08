@@ -1,6 +1,8 @@
 # Thunderbolt
 [English](https://github.com/Aebestach/Thunderbolt/blob/master/README.md) | [中文](https://github.com/Aebestach/Thunderbolt/blob/master/README-zh.md)
 
+![Banner](https://i.imgur.com/qXtsVJ3.jpg)
+
 ## Introduction
 In blackrack's **[True Volumetric Clouds](https://www.patreon.com/c/blackrack/posts)**, storm lightning is primarily a visual effect.
 **Thunderbolt** adds interaction on top of that: when a vessel is under a lightning-capable cloud layer, bolts may strike the craft, with optional part destruction.
