@@ -1,0 +1,64 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <Version>1.0.0</Version>
+    <FileVersion>$(Version)</FileVersion>
+    <AssemblyName>Thunderbolt</AssemblyName>
+    <RootNamespace>Thunderbolt</RootNamespace>
+    <TargetFramework>net481</TargetFramework>
+
+    <Description>EVE storm lightning that can strike vessels — Thunderbolt / 雷劫.</Description>
+    <Product>Thunderbolt</Product>
+
+    <KSPBT_ModRoot>$(ProjectRootDir)GameData\$(AssemblyName)</KSPBT_ModRoot>
+    <KSPBT_ModPluginFolder>Plugins</KSPBT_ModPluginFolder>
+
+    <LangVersion>latest</LangVersion>
+    <DebugType>portable</DebugType>
+  </PropertyGroup>
+
+  <PropertyGroup Condition=" '$(KSPBT_ModVersion)' != '' ">
+    <Version>$(KSPBT_ModVersion)</Version>
+    <FileVersion>$(Version)</FileVersion>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="KSPBuildTools" Version="1.1.1" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ModReference Include="Atmosphere">
+      <DLLPath>GameData/EnvironmentalVisualEnhancements/Plugins/Atmosphere.dll</DLLPath>
+    </ModReference>
+    <ModReference Include="EVEManager">
+      <DLLPath>GameData/EnvironmentalVisualEnhancements/Plugins/EVEManager.dll</DLLPath>
+    </ModReference>
+    <ModReference Include="Utils">
+      <DLLPath>GameData/EnvironmentalVisualEnhancements/Plugins/Utils.dll</DLLPath>
+    </ModReference>
+    <ModReference Include="ShaderLoader">
+      <DLLPath>GameData/EnvironmentalVisualEnhancements/Plugins/ShaderLoader.dll</DLLPath>
+    </ModReference>
+  </ItemGroup>
+
+  <ItemGroup>
+    <KSPVersionFile Include=".">
+      <Destination>$(KSPBT_ModRoot)/$(AssemblyName).version</Destination>
+      <URL>https://github.com/Aebestach/Thunderbolt/releases/latest/download/Thunderbolt.version</URL>
+      <Download>https://github.com/Aebestach/Thunderbolt/releases/latest</Download>
+      <KSP_Version>1.12.5</KSP_Version>
+      <KSP_Version_Min>1.12.0</KSP_Version_Min>
+      <KSP_Version_Max>1.12.99</KSP_Version_Max>
+    </KSPVersionFile>
+  </ItemGroup>
+
+  <Target Name="DeployGameDataToKsp" AfterTargets="KSPBT_CopyDLLsToPluginFolder" Condition=" '$(KSPBT_GameRoot)' != '' ">
+    <PropertyGroup>
+      <_KspModDeployDir>$(KSPBT_GameRoot)/GameData/$(AssemblyName)</_KspModDeployDir>
+    </PropertyGroup>
+    <ItemGroup>
+      <_ModDeployFiles Include="$(KSPBT_ModRoot)/**/*" />
+    </ItemGroup>
+    <Copy SourceFiles="@(_ModDeployFiles)" DestinationFolder="$(_KspModDeployDir)/%(RecursiveDir)" SkipUnchangedFiles="true" />
+    <Message Text="Deployed GameData to $(_KspModDeployDir)" Importance="high" />
+  </Target>
+</Project>

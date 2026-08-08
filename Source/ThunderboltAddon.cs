@@ -1,0 +1,596 @@
+﻿using System.Collections.Generic;
+using KSP.Localization;
+using UnityEngine;
+
+namespace Thunderbolt
+{
+    [KSPAddon(KSPAddon.Startup.Flight, false)]
+    public class ThunderboltAddon : MonoBehaviour
+    {
+        private readonly Dictionary<uint, double> vesselCooldowns = new Dictionary<uint, double>();
+        private float checkTimer;
+        private bool loggedUnavailable;
+        private Rect debugWindowRect = new Rect(40f, 120f, 280f, 210f);
+        private string lastDebugStatus = "Ready";
+
+        private void Start()
+        {
+            EveCloudBridge.Initialize();
+            ThunderboltSettings.Load();
+
+            if (!EveCloudBridge.IsAvailable && !loggedUnavailable)
+            {
+                loggedUnavailable = true;
+                Debug.Log("[Thunderbolt] Waiting for EVE / no raymarched cloud API — random strikes disabled; debug force-strike still works.");
+            }
+
+            if (ThunderboltSettings.DebugMode)
+            {
+                ScreenMessages.PostScreenMessage(
+                    $"[Thunderbolt Debug] ON — press {ThunderboltSettings.DebugStrikeKey} or use the debug window to strike.",
+                    5f,
+                    ScreenMessageStyle.UPPER_CENTER);
+            }
+        }
+
+        private void Update()
+        {
+            if (HighLogic.LoadedScene != GameScenes.FLIGHT || FlightGlobals.ActiveVessel == null)
+            {
+                return;
+            }
+
+            if (ThunderboltSettings.DebugMode)
+            {
+                // Toggle window with RightAlt + D
+                if (Input.GetKey(KeyCode.RightAlt) && Input.GetKeyDown(KeyCode.D))
+                {
+                    ThunderboltSettings.SetDebugMode(false);
+                    ScreenMessages.PostScreenMessage("[Thunderbolt Debug] OFF", 2f, ScreenMessageStyle.UPPER_CENTER);
+                    return;
+                }
+
+                if (!IsUiBlockingInput() && Input.GetKeyDown(ThunderboltSettings.DebugStrikeKey))
+                {
+                    ForceStrikeActiveVessel();
+                }
+            }
+            else if (Input.GetKey(KeyCode.RightAlt) && Input.GetKeyDown(KeyCode.D))
+            {
+                ThunderboltSettings.SetDebugMode(true);
+                ScreenMessages.PostScreenMessage(
+                    $"[Thunderbolt Debug] ON — press {ThunderboltSettings.DebugStrikeKey} to strike.",
+                    3f,
+                    ScreenMessageStyle.UPPER_CENTER);
+            }
+
+            if (!EveCloudBridge.IsAvailable)
+            {
+                return;
+            }
+
+            float warp = TimeWarp.CurrentRate * Time.timeScale;
+            if (warp > ThunderboltSettings.MaxTimeWarp)
+            {
+                return;
+            }
+
+            checkTimer += Time.unscaledDeltaTime;
+            if (checkTimer < ThunderboltSettings.CheckInterval)
+            {
+                return;
+            }
+
+            checkTimer = 0f;
+            TryStrikeLoadedVessels();
+        }
+
+        private void OnGUI()
+        {
+            if (!ThunderboltSettings.DebugMode || HighLogic.LoadedScene != GameScenes.FLIGHT)
+            {
+                return;
+            }
+
+            debugWindowRect = GUILayout.Window(
+                GetInstanceID(),
+                debugWindowRect,
+                DrawDebugWindow,
+                "Thunderbolt Debug",
+                GUILayout.MinWidth(260f));
+        }
+
+        private void DrawDebugWindow(int id)
+        {
+            Vessel vessel = FlightGlobals.ActiveVessel;
+            GUILayout.Label($"EVE bridge: {(EveCloudBridge.IsAvailable ? "OK" : "missing")}");
+            GUILayout.Label($"Vessel: {(vessel != null ? vessel.vesselName : "none")}");
+            GUILayout.Label($"Key: {ThunderboltSettings.DebugStrikeKey}  |  RightAlt+D toggles debug");
+            GUILayout.Label(lastDebugStatus);
+
+            ThunderboltSettings.SetDebugApplyDamage(
+                GUILayout.Toggle(ThunderboltSettings.DebugApplyDamage, "Apply damage on debug strike"));
+
+            GUILayout.BeginHorizontal();
+            if (GUILayout.Button("Strike Now", GUILayout.Height(32f)))
+            {
+                ForceStrikeActiveVessel();
+            }
+
+            if (GUILayout.Button("Close", GUILayout.Height(32f), GUILayout.Width(70f)))
+            {
+                ThunderboltSettings.SetDebugMode(false);
+            }
+
+            GUILayout.EndHorizontal();
+
+            GUI.DragWindow();
+        }
+
+        private void ForceStrikeActiveVessel()
+        {
+            Vessel vessel = FlightGlobals.ActiveVessel;
+            if (vessel == null)
+            {
+                lastDebugStatus = "No active vessel.";
+                return;
+            }
+
+            StormSample sample = BuildSyntheticSample(vessel);
+            if (EveCloudBridge.IsAvailable && EveCloudBridge.TrySampleStormAboveVessel(vessel, out StormSample eveSample))
+            {
+                sample = eveSample;
+                lastDebugStatus = $"Forced strike (EVE cov={sample.Coverage:F2} freq={sample.LightningFrequency:F2}).";
+            }
+            else
+            {
+                lastDebugStatus = "Forced strike (synthetic cloud point).";
+            }
+
+            bool applyDamage = ThunderboltSettings.EnableDamage && ThunderboltSettings.DebugApplyDamage;
+            StrikeVessel(vessel, sample, forced: true, applyDamage: applyDamage);
+
+            if (ThunderboltSettings.ScreenMessages)
+            {
+                ScreenMessages.PostScreenMessage(
+                    applyDamage ? "Debug lightning strike (with damage)!" : "Debug lightning strike!",
+                    2.5f,
+                    ScreenMessageStyle.UPPER_CENTER);
+            }
+        }
+
+        private static StormSample BuildSyntheticSample(Vessel vessel)
+        {
+            Vector3 bodyPos = vessel.mainBody.position;
+            Vector3 vesselPos = vessel.GetWorldPos3D();
+            Vector3 up = (vesselPos - bodyPos).normalized;
+            float radius = (vesselPos - bodyPos).magnitude + 2500f;
+            return new StormSample(1f, 1f, bodyPos + up * radius, isInsideStormCloud: false);
+        }
+
+        private static bool IsUiBlockingInput()
+        {
+            return InputLockManager.IsLocked(ControlTypes.All)
+                || (PauseMenu.exists && PauseMenu.isOpen)
+                || GameSettings.MODIFIER_KEY.GetKey();
+        }
+
+        private void TryStrikeLoadedVessels()
+        {
+            double ut = Planetarium.GetUniversalTime();
+            List<Vessel> vessels = FlightGlobals.VesselsLoaded;
+            for (int i = 0; i < vessels.Count; i++)
+            {
+                Vessel vessel = vessels[i];
+                if (!IsEligible(vessel))
+                {
+                    continue;
+                }
+
+                if (ThunderboltSettings.OnlyActiveVessel && vessel != FlightGlobals.ActiveVessel)
+                {
+                    continue;
+                }
+
+                if (vesselCooldowns.TryGetValue(vessel.persistentId, out double readyAt) && ut < readyAt)
+                {
+                    continue;
+                }
+
+                if (!EveCloudBridge.TrySampleStormAboveVessel(vessel, out StormSample sample))
+                {
+                    continue;
+                }
+
+                float chance = ThunderboltSettings.BaseChancePerCheck * sample.Coverage * sample.LightningFrequency;
+                if (vessel == FlightGlobals.ActiveVessel)
+                {
+                    chance *= 1.35f;
+                }
+
+                // Flying through the storm cloud itself is far more dangerous.
+                if (sample.IsInsideStormCloud)
+                {
+                    chance *= ThunderboltSettings.InsideCloudChanceMultiplier;
+                }
+
+                chance = Mathf.Clamp01(chance);
+
+                if (ThunderboltSettings.DebugLogging)
+                {
+                    Debug.Log($"[Thunderbolt] Candidate {vessel.vesselName}: cov={sample.Coverage:F2} freq={sample.LightningFrequency:F2} inside={sample.IsInsideStormCloud} chance={chance:F3}");
+                }
+
+                if (Random.value > chance)
+                {
+                    continue;
+                }
+
+                StrikeVessel(vessel, sample, forced: false, applyDamage: ThunderboltSettings.EnableDamage);
+            }
+        }
+
+        private static bool IsEligible(Vessel vessel)
+        {
+            if (vessel == null || !vessel.loaded || vessel.packed)
+            {
+                return false;
+            }
+
+            if (vessel.isEVA)
+            {
+                return false;
+            }
+
+            // Flying, pre-launch, landed, and splashed vessels are all eligible
+            // as long as they are under a storm cloud layer.
+
+            if (vessel.mainBody == null || !vessel.mainBody.atmosphere)
+            {
+                return false;
+            }
+
+            if (vessel.altitude > vessel.mainBody.atmosphereDepth)
+            {
+                return false;
+            }
+
+            if (vessel != FlightGlobals.ActiveVessel && vessel.GetTotalMass() < 0.2f)
+            {
+                return false;
+            }
+
+            return true;
+        }
+
+        private void StrikeVessel(Vessel vessel, StormSample sample, bool forced, bool applyDamage)
+        {
+            // External / pad rods divert random strikes (not debug force-strikes).
+            if (!forced && ThunderboltRodRegistry.TryDivert(vessel, out IThunderboltRod rod) && rod != null)
+            {
+                StrikeRod(vessel, sample, rod, applyDamage);
+                return;
+            }
+
+            Part target = PickStrikePart(vessel, forced);
+            if (target == null)
+            {
+                return;
+            }
+
+            Vector3 strikePoint = target.partTransform != null ? target.partTransform.position : vessel.GetWorldPos3D();
+            ModuleThunderboltRod mountedRod = target.FindModuleImplementing<ModuleThunderboltRod>();
+            if (mountedRod != null)
+            {
+                strikePoint = mountedRod.StrikePoint;
+            }
+
+            ThunderboltFx.Spawn(sample.CloudSampleWorldPosition, strikePoint);
+
+            bool destroyed = false;
+            if (applyDamage)
+            {
+                destroyed = TryDestroyStruckPart(vessel, target, forced);
+            }
+
+            if (!forced)
+            {
+                vesselCooldowns[vessel.persistentId] = Planetarium.GetUniversalTime() + ThunderboltSettings.VesselCooldown;
+            }
+
+            string partTitle = target.partInfo?.title ?? target.name;
+            string msg = forced
+                ? $"[Thunderbolt] Forced lightning hit {vessel.vesselName} / {partTitle} destroyed={destroyed}"
+                : $"[Thunderbolt] Lightning struck {vessel.vesselName} / {partTitle} destroyed={destroyed}";
+
+            Debug.Log(msg + $" cov={sample.Coverage:F2} freq={sample.LightningFrequency:F2} damage={applyDamage}");
+
+            // Flight Results left-column event log (skip pure visual debug spam).
+            if (!forced || destroyed || applyDamage)
+            {
+                LogFlightResult(partTitle, destroyed);
+            }
+
+            if (ThunderboltSettings.ScreenMessages)
+            {
+                string screen = destroyed
+                    ? Localizer.Format("#TB_strikeDestroyedScreen", partTitle)
+                    : (forced ? Localizer.Format("#TB_forceStrikeMessage", partTitle) : Localizer.Format("#TB_strikeMessage", partTitle));
+                if (!forced || destroyed)
+                {
+                    ScreenMessages.PostScreenMessage(screen, 4f, ScreenMessageStyle.UPPER_CENTER);
+                }
+            }
+        }
+
+        private void StrikeRod(Vessel vessel, StormSample sample, IThunderboltRod rod, bool applyDamage)
+        {
+            Vector3 strikePoint = rod.StrikePoint;
+            ThunderboltFx.Spawn(sample.CloudSampleWorldPosition, strikePoint);
+
+            bool destroyed = rod.TryAbsorbStrike(applyDamage);
+
+            vesselCooldowns[vessel.persistentId] = Planetarium.GetUniversalTime() + ThunderboltSettings.VesselCooldown;
+
+            string rodTitle = rod.DisplayName;
+            Debug.Log(
+                $"[Thunderbolt] Strike diverted to rod '{rodTitle}' protecting {vessel.vesselName} " +
+                $"destroyed={destroyed} cov={sample.Coverage:F2} freq={sample.LightningFrequency:F2}");
+
+            LogFlightResultDiverted(rodTitle, vessel.vesselName);
+
+            if (ThunderboltSettings.ScreenMessages)
+            {
+                string screen = Localizer.Format("#TB_divertMessage", rodTitle);
+                if (string.IsNullOrEmpty(screen) || screen.StartsWith("#TB_", System.StringComparison.Ordinal))
+                {
+                    screen = $"Lightning diverted to {rodTitle}!";
+                }
+
+                ScreenMessages.PostScreenMessage(screen, 4f, ScreenMessageStyle.UPPER_CENTER);
+            }
+        }
+
+        private static void LogFlightResultDiverted(string rodTitle, string vesselName)
+        {
+            if (FlightLogger.fetch == null)
+            {
+                return;
+            }
+
+            string eventMsg = Localizer.Format("#TB_FlightLogDiverted", rodTitle, vesselName);
+            if (string.IsNullOrEmpty(eventMsg) || eventMsg.StartsWith("#TB_", System.StringComparison.Ordinal))
+            {
+                eventMsg = $"Lightning was diverted to {rodTitle}, sparing {vesselName}.";
+            }
+
+            FlightLogger.fetch.LogEvent(eventMsg);
+        }
+
+        private static void LogFlightResult(string partTitle, bool destroyed)
+        {
+            if (FlightLogger.fetch == null)
+            {
+                return;
+            }
+
+            string eventMsg = destroyed
+                ? Localizer.Format("#TB_FlightLogDestroyed", partTitle)
+                : Localizer.Format("#TB_FlightLogStruck", partTitle);
+
+            if (string.IsNullOrEmpty(eventMsg))
+            {
+                eventMsg = destroyed
+                    ? $"{partTitle} was destroyed by lightning."
+                    : $"{partTitle} was struck by lightning.";
+            }
+
+            FlightLogger.fetch.LogEvent(eventMsg);
+        }
+
+        /// <summary>
+        /// Weighted random pick among vessel parts.
+        /// All parts are eligible; antennas/solar are only slightly more likely.
+        /// When root protection is on, the root is skipped if other parts exist.
+        /// </summary>
+        private static Part PickStrikePart(Vessel vessel, bool forced)
+        {
+            if (vessel == null || vessel.parts == null || vessel.parts.Count == 0)
+            {
+                return null;
+            }
+
+            Vector3 bodyPos = vessel.mainBody.position;
+            float minRadius = float.MaxValue;
+            float maxRadius = float.MinValue;
+            int aliveCount = 0;
+
+            for (int i = 0; i < vessel.parts.Count; i++)
+            {
+                Part part = vessel.parts[i];
+                if (part == null || part.State == PartStates.DEAD || part.partTransform == null)
+                {
+                    continue;
+                }
+
+                aliveCount++;
+                float radius = (part.partTransform.position - bodyPos).magnitude;
+                if (radius < minRadius) minRadius = radius;
+                if (radius > maxRadius) maxRadius = radius;
+            }
+
+            if (aliveCount == 0)
+            {
+                return vessel.rootPart;
+            }
+
+            bool skipProtectedRoot = !forced
+                && ThunderboltSettings.ProtectRootPart
+                && aliveCount > 1;
+
+            float totalWeight = 0f;
+            // Reuse a small local list via two parallel arrays sized to part count.
+            Part[] candidates = new Part[vessel.parts.Count];
+            float[] weights = new float[vessel.parts.Count];
+            int count = 0;
+            float radiusSpan = Mathf.Max(1f, maxRadius - minRadius);
+
+            for (int i = 0; i < vessel.parts.Count; i++)
+            {
+                Part part = vessel.parts[i];
+                if (part == null || part.State == PartStates.DEAD || part.partTransform == null)
+                {
+                    continue;
+                }
+
+                if (skipProtectedRoot && part == vessel.rootPart)
+                {
+                    continue;
+                }
+
+                float radius = (part.partTransform.position - bodyPos).magnitude;
+                float heightBias = 0.85f + 0.30f * ((radius - minRadius) / radiusSpan); // top parts a bit likelier
+                float weight = (1f + GetVulnerabilityBonus(part)) * heightBias;
+
+                candidates[count] = part;
+                weights[count] = weight;
+                totalWeight += weight;
+                count++;
+            }
+
+            if (count == 0)
+            {
+                return vessel.rootPart;
+            }
+
+            float roll = Random.Range(0f, totalWeight);
+            float cumulative = 0f;
+            for (int i = 0; i < count; i++)
+            {
+                cumulative += weights[i];
+                if (roll <= cumulative)
+                {
+                    return candidates[i];
+                }
+            }
+
+            return candidates[count - 1];
+        }
+
+        /// <summary>
+        /// Extra pick weight only — does not restrict which parts can be struck.
+        /// </summary>
+        private static float GetVulnerabilityBonus(Part part)
+        {
+            if (part.Modules.Contains("ModuleDeployableSolarPanel") || part.Modules.Contains("ModuleDataTransmitter"))
+            {
+                return 1.5f;
+            }
+
+            string name = part.name ?? string.Empty;
+            string title = part.partInfo != null ? part.partInfo.title ?? string.Empty : string.Empty;
+            string haystack = (name + " " + title).ToLowerInvariant();
+
+            if (haystack.Contains("antenna") || haystack.Contains("commun") || haystack.Contains("relay"))
+            {
+                return 2f;
+            }
+
+            if (haystack.Contains("solar") || haystack.Contains("panel") || haystack.Contains("photovoltaic"))
+            {
+                return 1.5f;
+            }
+
+            // Command/probe: no pick monopoly — they already use a lower destroy chance.
+            return 0f;
+        }
+
+        /// <summary>
+        /// Rolls to destroy the struck part directly. Returns true if the part was destroyed.
+        /// Forced debug strikes ignore root-part protection so single-part test craft can be destroyed.
+        /// </summary>
+        private static bool TryDestroyStruckPart(Vessel vessel, Part target, bool forced)
+        {
+            if (target == null || target.State == PartStates.DEAD)
+            {
+                return false;
+            }
+
+            string title = target.partInfo?.title ?? target.name;
+
+            if (!forced && ThunderboltSettings.ProtectRootPart && vessel != null && target == vessel.rootPart)
+            {
+                Debug.Log($"[Thunderbolt] Root part protected — skip destroy ({title}).");
+                return false;
+            }
+
+            float chance = GetDestroyChance(target);
+            // Debug force-strike with damage: always destroy so testing is unambiguous.
+            if (forced)
+            {
+                chance = 1f;
+            }
+
+            if (chance <= 0f || Random.value > chance)
+            {
+                Debug.Log($"[Thunderbolt] Destroy roll failed for {title} (p={chance:F2}, command={IsCommandPart(target)}).");
+                return false;
+            }
+
+            Debug.Log($"[Thunderbolt] Destroying part {title} (p={chance:F2}, forced={forced}).");
+            target.explode();
+            return true;
+        }
+
+        private static float GetDestroyChance(Part part)
+        {
+            if (IsCommandPart(part))
+            {
+                return Mathf.Clamp01(ThunderboltSettings.CommandDestroyChance);
+            }
+
+            if (IsVulnerablePart(part))
+            {
+                return Mathf.Clamp01(ThunderboltSettings.VulnerableDestroyChance);
+            }
+
+            return Mathf.Clamp01(ThunderboltSettings.PartDestroyChance);
+        }
+
+        private static bool IsVulnerablePart(Part part)
+        {
+            if (part.Modules.Contains("ModuleDeployableSolarPanel") || part.Modules.Contains("ModuleDataTransmitter"))
+            {
+                return true;
+            }
+
+            string name = part.name ?? string.Empty;
+            string title = part.partInfo != null ? part.partInfo.title ?? string.Empty : string.Empty;
+            string haystack = (name + " " + title).ToLowerInvariant();
+            return haystack.Contains("antenna")
+                || haystack.Contains("commun")
+                || haystack.Contains("relay")
+                || haystack.Contains("solar")
+                || haystack.Contains("panel")
+                || haystack.Contains("photovoltaic");
+        }
+
+        private static bool IsCommandPart(Part part)
+        {
+            if (part == null)
+            {
+                return false;
+            }
+
+            if (part.isControlSource != Vessel.ControlLevel.NONE || part.Modules.Contains("ModuleCommand"))
+            {
+                return true;
+            }
+
+            string name = part.name ?? string.Empty;
+            string title = part.partInfo != null ? part.partInfo.title ?? string.Empty : string.Empty;
+            string haystack = (name + " " + title).ToLowerInvariant();
+            return haystack.Contains("command") || haystack.Contains("probe") || haystack.Contains("cockpit") || haystack.Contains("avionics");
+        }
+    }
+}

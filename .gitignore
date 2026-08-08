@@ -1,0 +1,9 @@
+bin/
+obj/
+*.user
+!*.props.user.example
+.vs/
+*.dll
+*.pdb
+GameData/Thunderbolt/Plugins/
+GameData/Thunderbolt/Thunderbolt.version
