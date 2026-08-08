@@ -7,17 +7,11 @@ In blackrack's **[True Volumetric Clouds](https://www.patreon.com/c/blackrack/po
 
 Damage can be disabled in the difficulty settings if you only want the visuals. A shared lightning-rod module is also provided for parts and Kerbal Konstructs static towers — nearby strikes are diverted to the rod with high probability, but not with absolute immunity.
 
----
-
 ## Dependencies
 * **[True Volumetric Clouds](https://www.patreon.com/c/blackrack/posts)** —— Builds with lightning should work; tested on **v5** only.
 
----
-
 ## Installation
 Drop the `Thunderbolt` folder from the archive's `GameData` into your game's root `GameData` directory.
-
----
 
 ## Eligible Vessels
 A vessel may be struck when all of the following are true:
@@ -26,8 +20,6 @@ A vessel may be struck when all of the following are true:
 * It is on a body with an atmosphere, and below the atmosphere top
 * A lightning-capable volume-cloud layer is above it (coverage and lightning frequency meet the difficulty thresholds)
 * It is **not** an EVA kerbal
-
----
 
 ## For Modders
 

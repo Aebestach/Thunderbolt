@@ -7,17 +7,11 @@
 
 若只想保留特效，可在难度设置中关闭伤害。此外提供通用避雷模块，供部件或 Kerbal Konstructs 静态避雷塔使用——附近的雷击会以较高概率改劈至避雷针，但并非绝对免疫。
 
----
-
 ## 必要前置 (Dependencies)
 * **[True Volumetric Clouds](https://www.patreon.com/c/blackrack/posts)** —— 带雷电的版本理论上均可；目前仅在 **v5** 中测试。
 
----
-
 ## 安装指南 (Installation)
 将压缩包内 `GameData` 下的 `Thunderbolt` 文件夹放入游戏根目录的 `GameData` 中即可。
-
----
 
 ## 哪些载具会被雷劈 (Eligible Vessels)
 需同时满足：
@@ -26,8 +20,6 @@
 * 位于有大气的天体上，且高度不超过大气层顶
 * 上方存在可放电的体积云层（覆盖与闪电频率达到难度设定阈值）
 * **不是**舱外活动（EVA）的宇航员
-
----
 
 ## 给开发者 (For Modders)
 
