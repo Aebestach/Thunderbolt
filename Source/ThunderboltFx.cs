@@ -270,7 +270,7 @@ namespace Thunderbolt
                 Shader shader = ShaderLoaderClass.FindShader("EVE/LightningBolt");
                 if (shader == null)
                 {
-                    Debug.LogWarning("[Thunderbolt] EVE/LightningBolt shader not found — using fallback line bolt.");
+                    ThunderboltSettings.LogWarning("EVE/LightningBolt shader not found — using fallback line bolt.");
                     return;
                 }
 
@@ -287,7 +287,7 @@ namespace Thunderbolt
                     }
                     else
                     {
-                        Debug.LogWarning("[Thunderbolt] Lightning sheet texture not found — using fallback line bolt.");
+                        ThunderboltSettings.LogWarning("Lightning sheet texture not found — using fallback line bolt.");
                         sharedTemplate = null;
                         return;
                     }
@@ -301,11 +301,11 @@ namespace Thunderbolt
                 sharedTemplate.SetFloat(ShaderProperties.lightningIndex_PROPERTY, 0f);
                 sharedTemplate.SetVector(ShaderProperties.lightningSheetCount_PROPERTY, GetSheetCount());
 
-                Debug.Log("[Thunderbolt] Using EVE LightningBolt visual style.");
+                ThunderboltSettings.Log("Using EVE LightningBolt visual style.");
             }
             catch (System.Exception ex)
             {
-                Debug.LogWarning("[Thunderbolt] Failed to init EVE bolt style: " + ex.Message);
+                ThunderboltSettings.LogWarning("Failed to init EVE bolt style: " + ex.Message);
                 sharedTemplate = null;
             }
         }
@@ -324,13 +324,13 @@ namespace Thunderbolt
             LightningConfig cfg = TryGetEveLightningConfig();
             if (cfg == null)
             {
-                Debug.LogWarning("[Thunderbolt] No EVE lightning config — thunder sounds unavailable.");
+                ThunderboltSettings.LogWarning("No EVE lightning config — thunder sounds unavailable.");
                 return;
             }
 
             LoadClips(cfg.NearSoundNames, NearClips);
             LoadClips(cfg.FarSoundNames, FarClips);
-            Debug.Log($"[Thunderbolt] Loaded EVE thunder clips: near={NearClips.Count}, far={FarClips.Count}");
+            ThunderboltSettings.Log($"Loaded EVE thunder clips: near={NearClips.Count}, far={FarClips.Count}");
         }
 
         private static void LoadClips(List<LightningSoundConfig> names, List<AudioClip> into)

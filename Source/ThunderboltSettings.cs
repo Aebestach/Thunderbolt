@@ -21,6 +21,7 @@ namespace Thunderbolt
         public static float PartDestroyChance => Damage?.partDestroyChance ?? 0.45f;
         public static float VulnerableDestroyChance => Damage?.vulnerableDestroyChance ?? 0.8f;
         public static float CommandDestroyChance => Damage?.commandDestroyChance ?? 0.12f;
+        public static float EvaKillChance => Damage?.evaKillChance ?? 0.08f;
         public static bool ProtectRootPart => Damage?.protectRootPart ?? false;
         public static bool EnableDamage => Damage?.enableDamage ?? true;
         public static bool ScreenMessages => Damage?.screenMessages ?? true;
@@ -37,7 +38,7 @@ namespace Thunderbolt
 
         public static void Load()
         {
-            Debug.Log("[Thunderbolt] Using difficulty settings (Strike / Damage / Debug). Bolt visuals from EVE lightning config.");
+            Log("Using difficulty settings (Strike / Damage / Debug). Bolt visuals from EVE lightning config.");
         }
 
         public static void SetDebugMode(bool enabled)
@@ -53,6 +54,30 @@ namespace Thunderbolt
             if (Visual != null)
             {
                 Visual.debugApplyDamage = enabled;
+            }
+        }
+
+        public static void Log(string message)
+        {
+            if (DebugLogging)
+            {
+                Debug.Log("[Thunderbolt] " + message);
+            }
+        }
+
+        public static void LogWarning(string message)
+        {
+            if (DebugLogging)
+            {
+                Debug.LogWarning("[Thunderbolt] " + message);
+            }
+        }
+
+        public static void LogError(string message)
+        {
+            if (DebugLogging)
+            {
+                Debug.LogError("[Thunderbolt] " + message);
             }
         }
     }

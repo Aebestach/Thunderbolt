@@ -16,10 +16,11 @@ Drop the `Thunderbolt` folder from the archive's `GameData` into your game's roo
 ## Eligible Vessels
 A vessel may be struck when all of the following are true:
 
-* It is **loaded** (not packed/unloaded) in **Flying / Pre-Launch / Landed / Splashed**
+* It is **loaded** (not packed/unloaded) in **Flying / Pre-Launch / Landed / Splashed / EVA**
 * It is on a body with an atmosphere, and below the atmosphere top
 * A lightning-capable volume-cloud layer is above it (coverage and lightning frequency meet the difficulty thresholds)
-* It is **not** an EVA kerbal
+
+EVA kerbals can also be struck; their kill chance is kept separately low (adjustable in difficulty settings).
 
 ## For Modders
 

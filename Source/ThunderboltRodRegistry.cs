@@ -89,11 +89,7 @@ namespace Thunderbolt
             float chance = Mathf.Clamp01(best.DivertChance);
             if (chance < 1f && Random.value > chance)
             {
-                if (ThunderboltSettings.DebugLogging)
-                {
-                    Debug.Log($"[Thunderbolt] Rod divert failed for {best.DisplayName} (p={chance:F2}).");
-                }
-
+                ThunderboltSettings.Log($"Rod divert failed for {best.DisplayName} (p={chance:F2}).");
                 return false;
             }
 

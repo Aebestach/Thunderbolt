@@ -21,7 +21,7 @@ namespace Thunderbolt
             if (!EveCloudBridge.IsAvailable && !loggedUnavailable)
             {
                 loggedUnavailable = true;
-                Debug.Log("[Thunderbolt] Waiting for EVE / no raymarched cloud API — random strikes disabled; debug force-strike still works.");
+                ThunderboltSettings.Log("Waiting for EVE / no raymarched cloud API — random strikes disabled; debug force-strike still works.");
             }
 
             if (ThunderboltSettings.DebugMode)
@@ -216,10 +216,8 @@ namespace Thunderbolt
 
                 chance = Mathf.Clamp01(chance);
 
-                if (ThunderboltSettings.DebugLogging)
-                {
-                    Debug.Log($"[Thunderbolt] Candidate {vessel.vesselName}: cov={sample.Coverage:F2} freq={sample.LightningFrequency:F2} inside={sample.IsInsideStormCloud} chance={chance:F3}");
-                }
+                ThunderboltSettings.Log(
+                    $"Candidate {vessel.vesselName}: cov={sample.Coverage:F2} freq={sample.LightningFrequency:F2} inside={sample.IsInsideStormCloud} chance={chance:F3}");
 
                 if (Random.value > chance)
                 {
@@ -237,12 +235,7 @@ namespace Thunderbolt
                 return false;
             }
 
-            if (vessel.isEVA)
-            {
-                return false;
-            }
-
-            // Flying, pre-launch, landed, and splashed vessels are all eligible
+            // Flying, pre-launch, landed, splashed, and EVA are all eligible
             // as long as they are under a storm cloud layer.
 
             if (vessel.mainBody == null || !vessel.mainBody.atmosphere)
@@ -255,7 +248,8 @@ namespace Thunderbolt
                 return false;
             }
 
-            if (vessel != FlightGlobals.ActiveVessel && vessel.GetTotalMass() < 0.2f)
+            // Ignore tiny spectator debris, but never skip EVA kerbals for mass.
+            if (!vessel.isEVA && vessel != FlightGlobals.ActiveVessel && vessel.GetTotalMass() < 0.2f)
             {
                 return false;
             }
@@ -298,29 +292,59 @@ namespace Thunderbolt
                 vesselCooldowns[vessel.persistentId] = Planetarium.GetUniversalTime() + ThunderboltSettings.VesselCooldown;
             }
 
-            string partTitle = target.partInfo?.title ?? target.name;
+            string targetTitle = GetStrikeDisplayName(vessel, target);
             string msg = forced
-                ? $"[Thunderbolt] Forced lightning hit {vessel.vesselName} / {partTitle} destroyed={destroyed}"
-                : $"[Thunderbolt] Lightning struck {vessel.vesselName} / {partTitle} destroyed={destroyed}";
+                ? $"Forced lightning hit {vessel.vesselName} / {targetTitle} destroyed={destroyed}"
+                : $"Lightning struck {vessel.vesselName} / {targetTitle} destroyed={destroyed}";
 
-            Debug.Log(msg + $" cov={sample.Coverage:F2} freq={sample.LightningFrequency:F2} damage={applyDamage}");
+            ThunderboltSettings.Log(msg + $" cov={sample.Coverage:F2} freq={sample.LightningFrequency:F2} damage={applyDamage} eva={vessel.isEVA}");
 
             // Flight Results left-column event log (skip pure visual debug spam).
             if (!forced || destroyed || applyDamage)
             {
-                LogFlightResult(partTitle, destroyed);
+                LogFlightResult(targetTitle, destroyed, vessel.isEVA);
             }
 
             if (ThunderboltSettings.ScreenMessages)
             {
-                string screen = destroyed
-                    ? Localizer.Format("#TB_strikeDestroyedScreen", partTitle)
-                    : (forced ? Localizer.Format("#TB_forceStrikeMessage", partTitle) : Localizer.Format("#TB_strikeMessage", partTitle));
+                string screen;
+                if (destroyed)
+                {
+                    screen = vessel.isEVA
+                        ? Localizer.Format("#TB_evaKilledScreen", targetTitle)
+                        : Localizer.Format("#TB_strikeDestroyedScreen", targetTitle);
+                }
+                else
+                {
+                    screen = forced
+                        ? Localizer.Format("#TB_forceStrikeMessage", targetTitle)
+                        : Localizer.Format("#TB_strikeMessage", targetTitle);
+                }
+
                 if (!forced || destroyed)
                 {
                     ScreenMessages.PostScreenMessage(screen, 4f, ScreenMessageStyle.UPPER_CENTER);
                 }
             }
+        }
+
+        private static string GetStrikeDisplayName(Vessel vessel, Part target)
+        {
+            if (vessel != null && vessel.isEVA)
+            {
+                List<ProtoCrewMember> crew = vessel.GetVesselCrew();
+                if (crew != null && crew.Count > 0 && !string.IsNullOrEmpty(crew[0].name))
+                {
+                    return crew[0].name;
+                }
+
+                if (!string.IsNullOrEmpty(vessel.vesselName))
+                {
+                    return vessel.vesselName;
+                }
+            }
+
+            return target?.partInfo?.title ?? target?.name ?? vessel?.vesselName ?? "unknown";
         }
 
         private void StrikeRod(Vessel vessel, StormSample sample, IThunderboltRod rod, bool applyDamage)
@@ -333,8 +357,8 @@ namespace Thunderbolt
             vesselCooldowns[vessel.persistentId] = Planetarium.GetUniversalTime() + ThunderboltSettings.VesselCooldown;
 
             string rodTitle = rod.DisplayName;
-            Debug.Log(
-                $"[Thunderbolt] Strike diverted to rod '{rodTitle}' protecting {vessel.vesselName} " +
+            ThunderboltSettings.Log(
+                $"Strike diverted to rod '{rodTitle}' protecting {vessel.vesselName} " +
                 $"destroyed={destroyed} cov={sample.Coverage:F2} freq={sample.LightningFrequency:F2}");
 
             LogFlightResultDiverted(rodTitle, vessel.vesselName);
@@ -367,22 +391,41 @@ namespace Thunderbolt
             FlightLogger.fetch.LogEvent(eventMsg);
         }
 
-        private static void LogFlightResult(string partTitle, bool destroyed)
+        private static void LogFlightResult(string partTitle, bool destroyed, bool isEva)
         {
             if (FlightLogger.fetch == null)
             {
                 return;
             }
 
-            string eventMsg = destroyed
-                ? Localizer.Format("#TB_FlightLogDestroyed", partTitle)
-                : Localizer.Format("#TB_FlightLogStruck", partTitle);
-
-            if (string.IsNullOrEmpty(eventMsg))
+            string eventMsg;
+            if (isEva)
             {
                 eventMsg = destroyed
-                    ? $"{partTitle} was destroyed by lightning."
-                    : $"{partTitle} was struck by lightning.";
+                    ? Localizer.Format("#TB_FlightLogEvaKilled", partTitle)
+                    : Localizer.Format("#TB_FlightLogEvaStruck", partTitle);
+            }
+            else
+            {
+                eventMsg = destroyed
+                    ? Localizer.Format("#TB_FlightLogDestroyed", partTitle)
+                    : Localizer.Format("#TB_FlightLogStruck", partTitle);
+            }
+
+            if (string.IsNullOrEmpty(eventMsg) || eventMsg.StartsWith("#TB_", System.StringComparison.Ordinal))
+            {
+                if (isEva)
+                {
+                    eventMsg = destroyed
+                        ? $"{partTitle} was killed by lightning."
+                        : $"{partTitle} was struck by lightning on EVA.";
+                }
+                else
+                {
+                    eventMsg = destroyed
+                        ? $"{partTitle} was destroyed by lightning."
+                        : $"{partTitle} was struck by lightning.";
+                }
             }
 
             FlightLogger.fetch.LogEvent(eventMsg);
@@ -516,11 +559,26 @@ namespace Thunderbolt
                 return false;
             }
 
-            string title = target.partInfo?.title ?? target.name;
+            string title = GetStrikeDisplayName(vessel, target);
+
+            // EVA uses its own low kill chance; craft root protection does not apply.
+            if (vessel != null && vessel.isEVA)
+            {
+                float evaChance = forced ? 1f : Mathf.Clamp01(ThunderboltSettings.EvaKillChance);
+                if (evaChance <= 0f || Random.value > evaChance)
+                {
+                    ThunderboltSettings.Log($"EVA kill roll failed for {title} (p={evaChance:F2}).");
+                    return false;
+                }
+
+                ThunderboltSettings.Log($"Killing EVA kerbal {title} (p={evaChance:F2}, forced={forced}).");
+                target.explode();
+                return true;
+            }
 
             if (!forced && ThunderboltSettings.ProtectRootPart && vessel != null && target == vessel.rootPart)
             {
-                Debug.Log($"[Thunderbolt] Root part protected — skip destroy ({title}).");
+                ThunderboltSettings.Log($"Root part protected — skip destroy ({title}).");
                 return false;
             }
 
@@ -533,11 +591,11 @@ namespace Thunderbolt
 
             if (chance <= 0f || Random.value > chance)
             {
-                Debug.Log($"[Thunderbolt] Destroy roll failed for {title} (p={chance:F2}, command={IsCommandPart(target)}).");
+                ThunderboltSettings.Log($"Destroy roll failed for {title} (p={chance:F2}, command={IsCommandPart(target)}).");
                 return false;
             }
 
-            Debug.Log($"[Thunderbolt] Destroying part {title} (p={chance:F2}, forced={forced}).");
+            ThunderboltSettings.Log($"Destroying part {title} (p={chance:F2}, forced={forced}).");
             target.explode();
             return true;
         }

@@ -144,7 +144,7 @@ namespace Thunderbolt
             tip = FindChildTransform(transform, tipTransform);
             if (tip == null)
             {
-                Debug.LogWarning($"[Thunderbolt] ModuleThunderboltRodStatic: tipTransform '{tipTransform}' not found on {gameObject.name}.");
+                ThunderboltSettings.LogWarning($"ModuleThunderboltRodStatic: tipTransform '{tipTransform}' not found on {gameObject.name}.");
             }
         }
 

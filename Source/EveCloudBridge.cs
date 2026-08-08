@@ -50,12 +50,12 @@ namespace Thunderbolt
             {
                 _ = CloudsManager.GetObjectList();
                 IsAvailable = true;
-                Debug.Log("[Thunderbolt] EVE Atmosphere.dll linked — cloud bridge ready.");
+                ThunderboltSettings.Log("EVE Atmosphere.dll linked — cloud bridge ready.");
             }
             catch (Exception ex)
             {
                 IsAvailable = false;
-                Debug.LogError("[Thunderbolt] Failed to initialize EVE bridge: " + ex);
+                ThunderboltSettings.LogError("Failed to initialize EVE bridge: " + ex);
             }
         }
 

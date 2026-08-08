@@ -50,10 +50,10 @@ namespace Thunderbolt
             Assembly kkAsm = FindKkAssembly();
             if (kkAsm == null)
             {
-                if (!kkMissingLogged && ThunderboltSettings.DebugLogging)
+                if (!kkMissingLogged)
                 {
                     kkMissingLogged = true;
-                    Debug.Log("[Thunderbolt] KerbalKonstructs not loaded — static rod bridge idle.");
+                    ThunderboltSettings.Log("KerbalKonstructs not loaded — static rod bridge idle.");
                 }
 
                 return;
@@ -94,14 +94,14 @@ namespace Thunderbolt
                     }
                 }
 
-                if (ThunderboltSettings.DebugLogging && synced > 0)
+                if (synced > 0)
                 {
-                    Debug.Log($"[Thunderbolt] KK rod sync: configured {synced} static rod(s).");
+                    ThunderboltSettings.Log($"KK rod sync: configured {synced} static rod(s).");
                 }
             }
             catch (Exception ex)
             {
-                Debug.LogWarning($"[Thunderbolt] KK rod sync failed: {ex.Message}");
+                ThunderboltSettings.LogWarning("KK rod sync failed: " + ex.Message);
             }
         }
 

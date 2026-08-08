@@ -179,6 +179,15 @@ namespace Thunderbolt
             displayFormat = "F2")]
         public float commandDestroyChance = 0.12f;
 
+        [GameParameters.CustomFloatParameterUI(
+            "#TB_ParamEvaKillChance",
+            toolTip = "#TB_ParamEvaKillChance_tip",
+            minValue = 0f,
+            maxValue = 1f,
+            stepCount = 20,
+            displayFormat = "F2")]
+        public float evaKillChance = 0.08f;
+
         [GameParameters.CustomParameterUI("#TB_ParamProtectRoot", toolTip = "#TB_ParamProtectRoot_tip")]
         public bool protectRootPart = false;
 
@@ -197,6 +206,7 @@ namespace Thunderbolt
                     partDestroyChance = 0.20f;
                     vulnerableDestroyChance = 0.45f;
                     commandDestroyChance = 0.05f;
+                    evaKillChance = 0.03f;
                     protectRootPart = false;
                     screenMessages = true;
                     break;
@@ -205,6 +215,7 @@ namespace Thunderbolt
                     partDestroyChance = 0.60f;
                     vulnerableDestroyChance = 0.90f;
                     commandDestroyChance = 0.20f;
+                    evaKillChance = 0.12f;
                     protectRootPart = false;
                     screenMessages = true;
                     break;
@@ -213,6 +224,7 @@ namespace Thunderbolt
                     partDestroyChance = 0.75f;
                     vulnerableDestroyChance = 1.0f;
                     commandDestroyChance = 0.35f;
+                    evaKillChance = 0.20f;
                     protectRootPart = false;
                     screenMessages = true;
                     break;
@@ -222,6 +234,7 @@ namespace Thunderbolt
                     partDestroyChance = 0.45f;
                     vulnerableDestroyChance = 0.80f;
                     commandDestroyChance = 0.12f;
+                    evaKillChance = 0.08f;
                     protectRootPart = false;
                     screenMessages = true;
                     break;

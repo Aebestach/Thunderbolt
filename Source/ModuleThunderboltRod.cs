@@ -145,7 +145,7 @@ namespace Thunderbolt
             tip = part.FindModelTransform(tipTransform);
             if (tip == null)
             {
-                Debug.LogWarning($"[Thunderbolt] ModuleThunderboltRod: tipTransform '{tipTransform}' not found on {part.name}.");
+                ThunderboltSettings.LogWarning($"ModuleThunderboltRod: tipTransform '{tipTransform}' not found on {part.name}.");
             }
         }
 
@@ -162,7 +162,7 @@ namespace Thunderbolt
                 return false;
             }
 
-            Debug.Log($"[Thunderbolt] Lightning rod absorbed strike and was destroyed: {DisplayName}");
+            ThunderboltSettings.Log($"Lightning rod absorbed strike and was destroyed: {DisplayName}");
             part.explode();
             return true;
         }
