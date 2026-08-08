@@ -6,7 +6,7 @@
     <RootNamespace>Thunderbolt</RootNamespace>
     <TargetFramework>net481</TargetFramework>
 
-    <Description>EVE storm lightning that can strike vessels — Thunderbolt / 雷劫.</Description>
+    <Description>EVE storm lightning that can strike vessels — Thunderbolt.</Description>
     <Product>Thunderbolt</Product>
 
     <KSPBT_ModRoot>$(ProjectRootDir)GameData\$(AssemblyName)</KSPBT_ModRoot>
