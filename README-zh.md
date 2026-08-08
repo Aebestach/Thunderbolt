@@ -1,6 +1,8 @@
 # Thunderbolt / 雷劫
 [English](https://github.com/Aebestach/Thunderbolt/blob/master/README.md) | [中文](https://github.com/Aebestach/Thunderbolt/blob/master/README-zh.md)
 
+![Banner](https://i.imgur.com/qXtsVJ3.jpg)
+
 ## 模组简介 (Introduction)
 在 blackrack 的 **[True Volumetric Clouds (体积云)](https://www.patreon.com/c/blackrack/posts)** 中，雷暴闪电原本主要用于视觉表现。
 **雷劫**在此基础上增加了互动：飞船处于可放电云层下方时，闪电有概率击中船体，并可选地损毁部件。
