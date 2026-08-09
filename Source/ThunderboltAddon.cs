@@ -279,7 +279,32 @@ namespace Thunderbolt
                 strikePoint = mountedRod.StrikePoint;
             }
 
-            ThunderboltFx.Spawn(sample.CloudSampleWorldPosition, strikePoint);
+            // Procedural bolt always. Flying pierces nose→tail→ground; landed/etc. stop at nose.
+            bool exitThroughTail = !vessel.isEVA && vessel.situation == Vessel.Situations.FLYING;
+            if (!vessel.isEVA
+                && ThunderboltPiercingPath.TryBuild(
+                    vessel,
+                    sample.CloudSampleWorldPosition,
+                    exitThroughTail,
+                    out List<Vector3> path,
+                    out int hiddenBodySegment))
+            {
+                ThunderboltFx.SpawnPath(path, hiddenBodySegment);
+                ThunderboltSettings.Log(
+                    $"Bolt path points={path.Count} pierce={exitThroughTail} on {vessel.vesselName}");
+            }
+            else if (ThunderboltPiercingPath.TryBuildToPoint(
+                vessel,
+                sample.CloudSampleWorldPosition,
+                strikePoint,
+                out List<Vector3> hitPath))
+            {
+                ThunderboltFx.SpawnPath(hitPath);
+            }
+            else
+            {
+                ThunderboltFx.Spawn(sample.CloudSampleWorldPosition, strikePoint);
+            }
 
             bool destroyed = false;
             if (applyDamage)
@@ -350,7 +375,18 @@ namespace Thunderbolt
         private void StrikeRod(Vessel vessel, StormSample sample, IThunderboltRod rod, bool applyDamage)
         {
             Vector3 strikePoint = rod.StrikePoint;
-            ThunderboltFx.Spawn(sample.CloudSampleWorldPosition, strikePoint);
+            if (ThunderboltPiercingPath.TryBuildToPoint(
+                vessel,
+                sample.CloudSampleWorldPosition,
+                strikePoint,
+                out List<Vector3> path))
+            {
+                ThunderboltFx.SpawnPath(path);
+            }
+            else
+            {
+                ThunderboltFx.Spawn(sample.CloudSampleWorldPosition, strikePoint);
+            }
 
             bool destroyed = rod.TryAbsorbStrike(applyDamage);
 

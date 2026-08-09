@@ -243,7 +243,7 @@ namespace Thunderbolt
     }
 
     /// <summary>
-    /// Column 3 — debug only (bolt look/timing/light now come from EVE lightning config).
+    /// Column 3 — debug only (bolt drawn by Thunderbolt/ProceduralBolt; light/sound still from EVE).
     /// </summary>
     public class ThunderboltVisualParameters : GameParameters.CustomParameterNode
     {

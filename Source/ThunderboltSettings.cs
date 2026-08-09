@@ -44,7 +44,7 @@ namespace Thunderbolt
 
         public static void Load()
         {
-            Log("Using difficulty settings (Strike / Damage / Debug). Bolt visuals from EVE lightning config.");
+            Log("Using difficulty settings (Strike / Damage / Debug). Bolt visuals from Thunderbolt/ProceduralBolt.");
         }
 
         public static void SetDebugMode(bool enabled)

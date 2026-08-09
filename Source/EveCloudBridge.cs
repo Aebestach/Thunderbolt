@@ -28,7 +28,7 @@ namespace Thunderbolt
 
     /// <summary>
     /// Direct bridge into EVE raymarched cloud volumes.
-    /// Samples EVE for "when/where"; Thunderbolt draws its own bolt FX (not EVE Lightning.Spawn).
+    /// Samples EVE for "when/where"; bolts are drawn only by Thunderbolt/ProceduralBolt.
     /// </summary>
     internal static class EveCloudBridge
     {
@@ -152,9 +152,10 @@ namespace Thunderbolt
                     }
                 }
 
-                // Bolt origin: a bit above the vessel while inside cloud, else cloud sample point.
+                // Bolt origin: above the vessel while inside cloud, else cloud sample point.
+                // Keep enough vertical span so the sheet is not drawn as a short stub.
                 Vector3 boltOrigin = insideStorm
-                    ? bodyPos + up * Mathf.Min(outer - 1f, vesselRadius + 400f)
+                    ? bodyPos + up * Mathf.Min(outer - 1f, vesselRadius + 2000f)
                     : samplePos;
 
                 float score = coverage * frequency + (insideStorm ? 10f : 0f);

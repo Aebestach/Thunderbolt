@@ -1,26 +1,23 @@
 ﻿using System.Collections.Generic;
 using Atmosphere;
-using ShaderLoader;
 using UnityEngine;
-using Utils;
 
 namespace Thunderbolt
 {
     /// <summary>
-    /// Vessel-targeted bolt that reuses EVE's LightningBolt shader, sheet texture, and thunder sounds.
-    /// Visual timing/lighting prefer EVE lightning config values.
+    /// Vessel-targeted bolt FX via Thunderbolt/ProceduralBolt only.
+    /// EVE LightningConfig is still used for lifetime, light, colour, and thunder clips.
     /// </summary>
     public class ThunderboltFx : MonoBehaviour
     {
-        private static Material sharedTemplate;
-        private static Texture2D whiteOcclusion;
-        private static bool templateTried;
         private static bool soundsTried;
         private static readonly List<AudioClip> NearClips = new List<AudioClip>();
         private static readonly List<AudioClip> FarClips = new List<AudioClip>();
 
-        private GameObject boltQuad;
-        private Material boltMaterial;
+        private readonly List<GameObject> boltQuads = new List<GameObject>();
+        private readonly List<Material> boltMaterials = new List<Material>();
+        private readonly List<Vector3> segmentAxes = new List<Vector3>();
+
         private Light pointLight;
         private LineRenderer fallbackLine;
         private float life;
@@ -28,94 +25,177 @@ namespace Thunderbolt
         private float startIntensity;
         private Vector3 boltUpAxis = Vector3.up;
 
+        /// <summary>
+        /// Simple cloud→hit procedural bolt (rods / EVA / last-resort fallback).
+        /// </summary>
         public static void Spawn(Vector3 cloudPoint, Vector3 strikePoint)
         {
+            if (ThunderboltPiercingPath.TryBuildToPoint(null, cloudPoint, strikePoint, out List<Vector3> path))
+            {
+                SpawnPath(path, hiddenSegment: -1);
+                return;
+            }
+
             GameObject go = new GameObject("Thunderbolt_Bolt");
-            go.layer = 15; // Local
+            go.layer = 15;
             ThunderboltFx fx = go.AddComponent<ThunderboltFx>();
-            fx.Init(cloudPoint, strikePoint);
+            fx.InitPath(new[] { cloudPoint, strikePoint }, hiddenSegment: -1);
         }
 
-        private void Init(Vector3 cloudPoint, Vector3 strikePoint)
+        /// <summary>
+        /// Multi-segment procedural bolt. Optional hiddenSegment skips one polyline edge
+        /// (used for the nose→tail span inside the hull).
+        /// </summary>
+        public static void SpawnPath(IList<Vector3> points, int hiddenSegment = -1)
         {
-            EnsureTemplate();
+            if (points == null || points.Count < 2)
+            {
+                return;
+            }
+
+            GameObject go = new GameObject(hiddenSegment >= 0 ? "Thunderbolt_Pierce" : "Thunderbolt_Path");
+            go.layer = 15;
+            ThunderboltFx fx = go.AddComponent<ThunderboltFx>();
+            fx.InitPath(points, hiddenSegment);
+        }
+
+        private void InitPath(IList<Vector3> points, int hiddenSegment)
+        {
             EnsureSounds();
 
             LightningConfig eveCfg = TryGetEveLightningConfig();
+            BeginLifetime(eveCfg);
+
+            Vector3 mid = points[points.Count / 2];
+            transform.position = mid;
+            AttachLight(points.Count > 1 ? points[1] : mid, eveCfg);
+
+            Color boltColor = GetBoltColor();
+            bool anySegment = false;
+            for (int i = 0; i < points.Count - 1; i++)
+            {
+                if (i == hiddenSegment)
+                {
+                    continue;
+                }
+
+                float seed = 11.7f + i * 5.3f;
+                if (SpawnProceduralSegment(points[i + 1], points[i], seed, boltColor))
+                {
+                    anySegment = true;
+                }
+            }
+
+            if (!anySegment)
+            {
+                Vector3[] arr = new Vector3[points.Count];
+                for (int i = 0; i < points.Count; i++)
+                {
+                    arr[i] = points[i];
+                }
+
+                SpawnFallbackLine(arr);
+            }
+
+            PlayEveThunderSound(mid);
+        }
+
+        private void BeginLifetime(LightningConfig eveCfg)
+        {
             startLife = Mathf.Max(0.08f, eveCfg != null ? eveCfg.LifeTime : 0.5f);
             life = startLife;
             startIntensity = eveCfg != null ? eveCfg.LightIntensity : 4.5f;
+        }
+
+        private void AttachLight(Vector3 position, LightningConfig eveCfg)
+        {
             float lightRange = eveCfg != null ? eveCfg.LightRange : 9000f;
-
-            Vector3 delta = cloudPoint - strikePoint;
-            float height = Mathf.Max(50f, delta.magnitude);
-            boltUpAxis = delta.sqrMagnitude > 1f ? delta.normalized : Vector3.up;
-            Vector3 mid = Vector3.Lerp(strikePoint, cloudPoint, 0.5f);
-
-            transform.position = mid;
-
             pointLight = gameObject.AddComponent<Light>();
             pointLight.type = LightType.Point;
             pointLight.color = GetBoltLightColor();
             pointLight.intensity = startIntensity;
             pointLight.range = lightRange;
             pointLight.cullingMask = ~0;
-            pointLight.transform.position = Vector3.Lerp(strikePoint, cloudPoint, 0.25f);
-
-            if (sharedTemplate != null)
-            {
-                SpawnEveStyleQuad(mid, height, eveCfg);
-            }
-            else
-            {
-                SpawnFallbackLine(cloudPoint, strikePoint);
-            }
-
-            PlayEveThunderSound(mid);
+            pointLight.transform.position = position;
         }
 
-        private void SpawnEveStyleQuad(Vector3 mid, float height, LightningConfig eveCfg)
+        private bool SpawnProceduralSegment(Vector3 from, Vector3 to, float seed, Color color)
         {
-            boltQuad = GameObject.CreatePrimitive(PrimitiveType.Quad);
-            Collider col = boltQuad.GetComponent<Collider>();
+            if (!ThunderboltProceduralBolt.TryCreateMaterial(seed, color, out Material mat))
+            {
+                return false;
+            }
+
+            Vector3 delta = to - from;
+            float length = delta.magnitude;
+            if (length < 0.5f)
+            {
+                Destroy(mat);
+                return false;
+            }
+
+            // Slight overlap so short pieces meet even if billboards leave a hairline.
+            Vector3 dir = delta / length;
+            const float overlap = 2f;
+            Vector3 fromEx = from - dir * overlap;
+            Vector3 toEx = to + dir * overlap;
+            float drawLen = length + overlap * 2f;
+            float width = ThunderboltProceduralBolt.WidthForLength(length);
+            return FinishSegmentQuad(fromEx, toEx, width, drawLen, mat);
+        }
+
+        private bool FinishSegmentQuad(
+            Vector3 from,
+            Vector3 to,
+            float width,
+            float length,
+            Material mat)
+        {
+            Vector3 delta = to - from;
+            if (length < 0.5f)
+            {
+                length = delta.magnitude;
+            }
+
+            if (length < 0.5f)
+            {
+                Destroy(mat);
+                return false;
+            }
+
+            Vector3 axis = delta / length;
+            Vector3 mid = Vector3.Lerp(from, to, 0.5f);
+
+            GameObject quad = GameObject.CreatePrimitive(PrimitiveType.Quad);
+            Collider col = quad.GetComponent<Collider>();
             if (col != null)
             {
                 Destroy(col);
             }
 
-            boltQuad.layer = 15;
-            boltQuad.transform.position = mid;
-            boltQuad.transform.parent = transform;
+            quad.layer = 15;
+            quad.name = "Thunderbolt_ProcSegment";
+            quad.transform.position = mid;
+            quad.transform.parent = transform;
 
-            boltMaterial = new Material(sharedTemplate);
-            boltMaterial.renderQueue = 2999;
-            boltMaterial.SetFloat(ShaderProperties.alpha_PROPERTY, 1f);
-            boltMaterial.SetColor(ShaderProperties.color_PROPERTY, GetBoltColor());
-            boltMaterial.SetVector(ShaderProperties.randomIndexes_PROPERTY, new Vector2(Random.Range(0f, 1f), Random.Range(0f, 1f)));
-            boltMaterial.SetVector(ShaderProperties.lightningSheetCount_PROPERTY, GetSheetCount());
-            boltMaterial.SetFloat(ShaderProperties.maxConcurrentLightning_PROPERTY, 1f);
-            boltMaterial.SetFloat(ShaderProperties.lightningIndex_PROPERTY, 0f);
-            if (whiteOcclusion != null)
-            {
-                boltMaterial.SetTexture("lightningOcclusion", whiteOcclusion);
-            }
-
-            MeshRenderer renderer = boltQuad.GetComponent<MeshRenderer>();
-            renderer.material = boltMaterial;
+            MeshRenderer renderer = quad.GetComponent<MeshRenderer>();
+            renderer.material = mat;
             renderer.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
             renderer.receiveShadows = false;
 
-            float width = Mathf.Clamp(height * 0.45f, 400f, 2800f);
-            if (eveCfg != null)
+            quad.transform.localScale = new Vector3(width, length, 1f);
+            OrientBillboard(quad, axis);
+
+            boltQuads.Add(quad);
+            boltMaterials.Add(mat);
+            segmentAxes.Add(axis);
+
+            if (boltQuads.Count == 1)
             {
-                width = Mathf.Clamp(
-                    eveCfg.BoltWidth * Mathf.Clamp(height / Mathf.Max(1f, eveCfg.BoltHeight), 0.35f, 2.5f),
-                    300f,
-                    4000f);
+                boltUpAxis = axis;
             }
 
-            boltQuad.transform.localScale = new Vector3(width, height, 1f);
-            OrientBillboard(boltUpAxis);
+            return true;
         }
 
         private void PlayEveThunderSound(Vector3 worldPosition)
@@ -193,12 +273,17 @@ namespace Thunderbolt
                 pointLight.intensity = startIntensity * t;
             }
 
-            if (boltMaterial != null)
+            for (int i = 0; i < boltMaterials.Count; i++)
             {
-                boltMaterial.SetFloat(ShaderProperties.alpha_PROPERTY, t);
-                if (boltQuad != null)
+                Material mat = boltMaterials[i];
+                if (mat != null)
                 {
-                    OrientBillboard(boltUpAxis);
+                    ThunderboltProceduralBolt.SetFade(mat, t);
+                }
+
+                if (i < boltQuads.Count && boltQuads[i] != null && i < segmentAxes.Count)
+                {
+                    OrientBillboard(boltQuads[i], segmentAxes[i]);
                 }
             }
 
@@ -219,9 +304,9 @@ namespace Thunderbolt
             }
         }
 
-        private void OrientBillboard(Vector3 upAxis)
+        private static void OrientBillboard(GameObject quad, Vector3 upAxis)
         {
-            if (boltQuad == null || FlightCamera.fetch == null)
+            if (quad == null || FlightCamera.fetch == null)
             {
                 return;
             }
@@ -233,80 +318,35 @@ namespace Thunderbolt
                 right = Vector3.Cross(upAxis, Vector3.right);
             }
 
-            boltQuad.transform.rotation = Quaternion.LookRotation(right.normalized, upAxis.normalized);
+            quad.transform.rotation = Quaternion.LookRotation(right.normalized, upAxis.normalized);
         }
 
         private void Cleanup()
         {
-            if (boltMaterial != null)
+            for (int i = 0; i < boltMaterials.Count; i++)
             {
-                Destroy(boltMaterial);
-                boltMaterial = null;
+                if (boltMaterials[i] != null)
+                {
+                    Destroy(boltMaterials[i]);
+                }
             }
 
-            if (boltQuad != null)
+            boltMaterials.Clear();
+
+            for (int i = 0; i < boltQuads.Count; i++)
             {
-                Destroy(boltQuad);
-                boltQuad = null;
+                if (boltQuads[i] != null)
+                {
+                    Destroy(boltQuads[i]);
+                }
             }
+
+            boltQuads.Clear();
+            segmentAxes.Clear();
 
             if (fallbackLine != null && fallbackLine.material != null)
             {
                 Destroy(fallbackLine.material);
-            }
-        }
-
-        private static void EnsureTemplate()
-        {
-            if (templateTried)
-            {
-                return;
-            }
-
-            templateTried = true;
-
-            try
-            {
-                Shader shader = ShaderLoaderClass.FindShader("EVE/LightningBolt");
-                if (shader == null)
-                {
-                    ThunderboltSettings.LogWarning("EVE/LightningBolt shader not found — using fallback line bolt.");
-                    return;
-                }
-
-                sharedTemplate = new Material(shader);
-                if (!TryApplyEveBoltTexture(sharedTemplate))
-                {
-                    Texture2D tex = GameDatabase.Instance.GetTexture(
-                        "StockVolumetricClouds/Clouds/Textures/PluginData/LightningSheet1",
-                        false);
-                    if (tex != null)
-                    {
-                        sharedTemplate.mainTexture = tex;
-                        sharedTemplate.SetTexture("_MainTex", tex);
-                    }
-                    else
-                    {
-                        ThunderboltSettings.LogWarning("Lightning sheet texture not found — using fallback line bolt.");
-                        sharedTemplate = null;
-                        return;
-                    }
-                }
-
-                whiteOcclusion = new Texture2D(1, 1, TextureFormat.RGBA32, false);
-                whiteOcclusion.SetPixel(0, 0, Color.white);
-                whiteOcclusion.Apply(false, true);
-                sharedTemplate.SetTexture("lightningOcclusion", whiteOcclusion);
-                sharedTemplate.SetFloat(ShaderProperties.maxConcurrentLightning_PROPERTY, 1f);
-                sharedTemplate.SetFloat(ShaderProperties.lightningIndex_PROPERTY, 0f);
-                sharedTemplate.SetVector(ShaderProperties.lightningSheetCount_PROPERTY, GetSheetCount());
-
-                ThunderboltSettings.Log("Using EVE LightningBolt visual style.");
-            }
-            catch (System.Exception ex)
-            {
-                ThunderboltSettings.LogWarning("Failed to init EVE bolt style: " + ex.Message);
-                sharedTemplate = null;
             }
         }
 
@@ -355,18 +395,6 @@ namespace Thunderbolt
             }
         }
 
-        private static bool TryApplyEveBoltTexture(Material mat)
-        {
-            LightningConfig cfg = TryGetEveLightningConfig();
-            if (cfg?.BoltTexture == null)
-            {
-                return false;
-            }
-
-            cfg.BoltTexture.ApplyTexture(mat, "_MainTex");
-            return true;
-        }
-
         private static LightningConfig TryGetEveLightningConfig()
         {
             try
@@ -405,12 +433,6 @@ namespace Thunderbolt
             }
         }
 
-        private static Vector2 GetSheetCount()
-        {
-            LightningConfig cfg = TryGetEveLightningConfig();
-            return cfg != null ? cfg.LightningSheetCount : new Vector2(4f, 3f);
-        }
-
         private static Color GetBoltColor()
         {
             LightningConfig cfg = TryGetEveLightningConfig();
@@ -423,7 +445,7 @@ namespace Thunderbolt
             return cfg != null ? cfg.LightColor : new Color(0.55f, 0.6f, 1f, 1f);
         }
 
-        private void SpawnFallbackLine(Vector3 cloudPoint, Vector3 strikePoint)
+        private void SpawnFallbackLine(IList<Vector3> points)
         {
             fallbackLine = gameObject.AddComponent<LineRenderer>();
             fallbackLine.useWorldSpace = true;
@@ -432,9 +454,11 @@ namespace Thunderbolt
             fallbackLine.endColor = new Color(0.65f, 0.78f, 1f, 0.85f);
             fallbackLine.startWidth = 18f;
             fallbackLine.endWidth = 6f;
-            fallbackLine.positionCount = 2;
-            fallbackLine.SetPosition(0, cloudPoint);
-            fallbackLine.SetPosition(1, strikePoint);
+            fallbackLine.positionCount = points.Count;
+            for (int i = 0; i < points.Count; i++)
+            {
+                fallbackLine.SetPosition(i, points[i]);
+            }
         }
     }
 
