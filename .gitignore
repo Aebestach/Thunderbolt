@@ -1,3 +1,4 @@
+# Build / IDE
 bin/
 obj/
 *.user
@@ -5,5 +6,37 @@ obj/
 .vs/
 *.dll
 *.pdb
+
+# Deployed / generated GameData
 GameData/Thunderbolt/Plugins/
 GameData/Thunderbolt/Thunderbolt.version
+
+# AssetBundle side-products from Unity BuildPipeline
+# Keep thunderboltshaders.bundle for releases; drop manifests / folder catalog.
+GameData/Thunderbolt/Shaders/*.manifest
+GameData/Thunderbolt/Shaders/Shaders
+
+# Unity editor cruft (keep Unity/**/Assets source)
+Unity/**/Library/
+Unity/**/Temp/
+Unity/**/Obj/
+Unity/**/Logs/
+Unity/**/UserSettings/
+Unity/**/MemoryCaptures/
+Unity/**/Build/
+Unity/**/*.csproj
+Unity/**/*.sln
+Unity/**/*.suo
+Unity/**/*.user
+Unity/**/*.userprefs
+Unity/**/*.pidb
+Unity/**/*.booproj
+Unity/**/*.svd
+Unity/**/*.pdb
+Unity/**/*.mdb
+Unity/**/*.opendb
+Unity/**/*.VC.db
+Unity/**/.vs/
+Unity/**/sysinfo.txt
+Unity/**/*.apk
+Unity/**/*.unitypackage
