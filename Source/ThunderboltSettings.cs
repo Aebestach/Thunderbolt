@@ -8,14 +8,20 @@ namespace Thunderbolt
     public static class ThunderboltSettings
     {
         // Column 1 — strike
-        public static float CheckInterval => Strike?.checkInterval ?? 2f;
-        public static float BaseChancePerCheck => Strike?.baseChancePerCheck ?? 0.035f;
+        public static float CheckInterval => Strike?.checkInterval ?? 3.5f;
+        public static float BaseChancePerCheck => Strike?.baseChancePerCheck ?? 0.018f;
         public static float MaxTimeWarp => Strike?.maxTimeWarp ?? 4f;
-        public static float VesselCooldown => Strike?.vesselCooldown ?? 25f;
-        public static float MinCoverage => Strike?.minCoverage ?? 0.12f;
-        public static float MinLightningFrequency => Strike?.minLightningFrequency ?? 0.05f;
+        public static float VesselCooldown => Strike?.vesselCooldown ?? 45f;
+        public static float MinCoverage => Strike?.minCoverage ?? 0.35f;
+        public static float MinLightningFrequency => Strike?.minLightningFrequency ?? 0.15f;
         public static bool OnlyActiveVessel => Strike?.onlyActiveVessel ?? true;
-        public static float InsideCloudChanceMultiplier => Strike?.insideCloudChanceMultiplier ?? 10f;
+        public static float InsideCloudChanceMultiplier => Strike?.insideCloudChanceMultiplier ?? 5f;
+
+        /// <summary>
+        /// Extra coverage demanded when the vessel is below the cloud slab.
+        /// Blocks thin/high samples that still look like clear sky from the ground.
+        /// </summary>
+        public const float BelowCloudCoverageFloor = 0.5f;
 
         // Column 2 — damage
         public static float PartDestroyChance => Damage?.partDestroyChance ?? 0.45f;

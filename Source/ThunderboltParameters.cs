@@ -26,7 +26,7 @@ namespace Thunderbolt
             maxValue = 0.25f,
             stepCount = 50,
             displayFormat = "F3")]
-        public float baseChancePerCheck = 0.035f;
+        public float baseChancePerCheck = 0.018f;
 
         [GameParameters.CustomFloatParameterUI(
             "#TB_ParamCheckInterval",
@@ -35,7 +35,7 @@ namespace Thunderbolt
             maxValue = 30f,
             stepCount = 59,
             displayFormat = "F1")]
-        public float checkInterval = 2f;
+        public float checkInterval = 3.5f;
 
         [GameParameters.CustomFloatParameterUI(
             "#TB_ParamVesselCooldown",
@@ -44,7 +44,7 @@ namespace Thunderbolt
             maxValue = 300f,
             stepCount = 60,
             displayFormat = "F0")]
-        public float vesselCooldown = 25f;
+        public float vesselCooldown = 45f;
 
         [GameParameters.CustomFloatParameterUI(
             "#TB_ParamMinCoverage",
@@ -53,7 +53,7 @@ namespace Thunderbolt
             maxValue = 1f,
             stepCount = 50,
             displayFormat = "F2")]
-        public float minCoverage = 0.12f;
+        public float minCoverage = 0.35f;
 
         [GameParameters.CustomFloatParameterUI(
             "#TB_ParamMinLightningFrequency",
@@ -62,7 +62,7 @@ namespace Thunderbolt
             maxValue = 1f,
             stepCount = 50,
             displayFormat = "F2")]
-        public float minLightningFrequency = 0.05f;
+        public float minLightningFrequency = 0.15f;
 
         [GameParameters.CustomFloatParameterUI(
             "#TB_ParamMaxTimeWarp",
@@ -83,7 +83,7 @@ namespace Thunderbolt
             maxValue = 25f,
             stepCount = 48,
             displayFormat = "F1")]
-        public float insideCloudChanceMultiplier = 10f;
+        public float insideCloudChanceMultiplier = 5f;
 
         public static ThunderboltStrikeParameters Instance =>
             HighLogic.CurrentGame?.Parameters.CustomParams<ThunderboltStrikeParameters>();
@@ -93,45 +93,45 @@ namespace Thunderbolt
             switch (preset)
             {
                 case GameParameters.Preset.Easy:
-                    baseChancePerCheck = 0.015f;
-                    checkInterval = 3f;
-                    vesselCooldown = 45f;
-                    minCoverage = 0.25f;
-                    minLightningFrequency = 0.15f;
+                    baseChancePerCheck = 0.01f;
+                    checkInterval = 5f;
+                    vesselCooldown = 60f;
+                    minCoverage = 0.45f;
+                    minLightningFrequency = 0.25f;
                     maxTimeWarp = 4f;
                     onlyActiveVessel = true;
-                    insideCloudChanceMultiplier = 6f;
+                    insideCloudChanceMultiplier = 3f;
                     break;
                 case GameParameters.Preset.Moderate:
-                    baseChancePerCheck = 0.055f;
-                    checkInterval = 1.5f;
-                    vesselCooldown = 18f;
-                    minCoverage = 0.08f;
-                    minLightningFrequency = 0.03f;
+                    baseChancePerCheck = 0.028f;
+                    checkInterval = 2.5f;
+                    vesselCooldown = 30f;
+                    minCoverage = 0.25f;
+                    minLightningFrequency = 0.1f;
                     maxTimeWarp = 4f;
                     onlyActiveVessel = true;
-                    insideCloudChanceMultiplier = 12f;
+                    insideCloudChanceMultiplier = 7f;
                     break;
                 case GameParameters.Preset.Hard:
-                    baseChancePerCheck = 0.08f;
-                    checkInterval = 1f;
-                    vesselCooldown = 12f;
-                    minCoverage = 0.05f;
-                    minLightningFrequency = 0.02f;
-                    maxTimeWarp = 4f;
-                    onlyActiveVessel = true;
-                    insideCloudChanceMultiplier = 16f;
-                    break;
-                case GameParameters.Preset.Normal:
-                default:
-                    baseChancePerCheck = 0.035f;
+                    baseChancePerCheck = 0.045f;
                     checkInterval = 2f;
-                    vesselCooldown = 25f;
-                    minCoverage = 0.12f;
-                    minLightningFrequency = 0.05f;
+                    vesselCooldown = 20f;
+                    minCoverage = 0.18f;
+                    minLightningFrequency = 0.08f;
                     maxTimeWarp = 4f;
                     onlyActiveVessel = true;
                     insideCloudChanceMultiplier = 10f;
+                    break;
+                case GameParameters.Preset.Normal:
+                default:
+                    baseChancePerCheck = 0.018f;
+                    checkInterval = 3.5f;
+                    vesselCooldown = 45f;
+                    minCoverage = 0.35f;
+                    minLightningFrequency = 0.15f;
+                    maxTimeWarp = 4f;
+                    onlyActiveVessel = true;
+                    insideCloudChanceMultiplier = 5f;
                     break;
             }
         }

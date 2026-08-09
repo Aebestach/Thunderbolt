@@ -121,7 +121,12 @@ namespace Thunderbolt
                 }
 
                 float coverage = volume.SampleCoverage(samplePos, out float cloudType, false);
-                if (coverage < ThunderboltSettings.MinCoverage)
+                // Below the cloud slab (runway / clear-looking days), demand denser coverage
+                // so thin high samples with default lightningFrequency=1 do not count as storms.
+                float coverageThreshold = vesselInCloudHeight
+                    ? ThunderboltSettings.MinCoverage
+                    : Mathf.Max(ThunderboltSettings.MinCoverage, ThunderboltSettings.BelowCloudCoverageFloor);
+                if (coverage < coverageThreshold)
                 {
                     continue;
                 }
