@@ -77,4 +77,4 @@ MODULE
 
 ## 致谢 (Credits)
 
-感谢 **@CharonSSS** 提供的封面与效果图。
+感谢 @CharonSSS 提供的封面与效果图。

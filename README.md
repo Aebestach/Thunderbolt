@@ -77,4 +77,4 @@ MODULE
 
 ## Credits
 
-Thanks to **@CharonSSS** for the banner and screenshot images.
+Thanks to @CharonSSS for the banner and screenshot images.
