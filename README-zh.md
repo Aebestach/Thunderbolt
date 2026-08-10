@@ -1,13 +1,22 @@
 # Thunderbolt / 雷劫
 [English](https://github.com/Aebestach/Thunderbolt/blob/master/README.md) | [中文](https://github.com/Aebestach/Thunderbolt/blob/master/README-zh.md)
 
-![Banner](https://i.imgur.com/qXtsVJ3.jpg)
+![Banner](https://i.imgur.com/1WtXutR.png)
 
 ## 模组简介 (Introduction)
 在 blackrack 的 **[True Volumetric Clouds (体积云)](https://www.patreon.com/c/blackrack/posts)** 中，雷暴闪电原本主要用于视觉表现。
 **雷劫**在此基础上增加了互动：飞船处于可放电云层下方时，闪电有概率击中船体，并可选地损毁部件。
 
 若只想保留特效，可在难度设置中关闭伤害。此外提供通用避雷模块，供部件或 Kerbal Konstructs 静态避雷塔使用——附近的雷击会以较高概率改劈至避雷针，但并非绝对免疫。
+
+## 画廊 (Gallery)
+
+![雷击效果](https://i.imgur.com/SsqlnJp.png)
+![雷击效果](https://i.imgur.com/53HHh6w.png)
+![雷击效果](https://i.imgur.com/i5jW5xs.png)
+![雷击效果](https://i.imgur.com/cSssYX7.png)
+![雷击效果](https://i.imgur.com/HoP45vf.png)
+![雷击效果](https://i.imgur.com/XOwbfYR.png)
 
 ## 必要前置 (Dependencies)
 * **[True Volumetric Clouds](https://www.patreon.com/c/blackrack/posts)** —— 带雷电的版本理论上均可；目前仅在 **v5** 中测试。
@@ -65,3 +74,7 @@ MODULE
 | `attractPriority` | 多根针竞争时的优先级 |
 | `tipTransform` / `tipOffset` | 可选雷击落点 |
 | `canBeDestroyed` / `destroyChance` | 仅部件避雷针 |
+
+## 致谢 (Credits)
+
+感谢 **@CharonSSS** 提供的封面与效果图。

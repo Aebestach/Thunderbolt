@@ -1,13 +1,22 @@
 # Thunderbolt
 [English](https://github.com/Aebestach/Thunderbolt/blob/master/README.md) | [中文](https://github.com/Aebestach/Thunderbolt/blob/master/README-zh.md)
 
-![Banner](https://i.imgur.com/qXtsVJ3.jpg)
+![Banner](https://i.imgur.com/1WtXutR.png)
 
 ## Introduction
 In blackrack's **[True Volumetric Clouds](https://www.patreon.com/c/blackrack/posts)**, storm lightning is primarily a visual effect.
 **Thunderbolt** adds interaction on top of that: when a vessel is under a lightning-capable cloud layer, bolts may strike the craft, with optional part destruction.
 
 Damage can be disabled in the difficulty settings if you only want the visuals. A shared lightning-rod module is also provided for parts and Kerbal Konstructs static towers — nearby strikes are diverted to the rod with high probability, but not with absolute immunity.
+
+## Gallery
+
+![Strike](https://i.imgur.com/SsqlnJp.png)
+![Strike](https://i.imgur.com/53HHh6w.png)
+![Strike](https://i.imgur.com/i5jW5xs.png)
+![Strike](https://i.imgur.com/cSssYX7.png)
+![Strike](https://i.imgur.com/HoP45vf.png)
+![Strike](https://i.imgur.com/XOwbfYR.png)
 
 ## Dependencies
 * **[True Volumetric Clouds](https://www.patreon.com/c/blackrack/posts)** —— Builds with lightning should work; tested on **v5** only.
@@ -65,3 +74,7 @@ MODULE
 | `attractPriority` | Priority when multiple rods compete |
 | `tipTransform` / `tipOffset` | Optional bolt tip |
 | `canBeDestroyed` / `destroyChance` | Part rods only |
+
+## Credits
+
+Thanks to **@CharonSSS** for the banner and screenshot images.
