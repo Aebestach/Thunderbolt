@@ -1,4 +1,4 @@
-﻿using System.Collections.Generic;
+using System.Collections.Generic;
 using KSP.Localization;
 using UnityEngine;
 
@@ -15,13 +15,14 @@ namespace Thunderbolt
 
         private void Start()
         {
-            EveCloudBridge.Initialize();
             ThunderboltSettings.Load();
 
-            if (!EveCloudBridge.IsAvailable && !loggedUnavailable)
+            if (!StormSampler.HasEveProvider && !loggedUnavailable)
             {
                 loggedUnavailable = true;
-                ThunderboltSettings.Log("Waiting for EVE / no raymarched cloud API — random strikes disabled; debug force-strike still works.");
+                ThunderboltSettings.Log(
+                    "No EVE cloud bridge — using atmospheric ASL-density lightning (Kerbin baseline). " +
+                    "Install ThunderboltEVE + EVE/TVC for cloud-synced strikes.");
             }
 
             if (ThunderboltSettings.DebugMode)
@@ -64,11 +65,6 @@ namespace Thunderbolt
                     ScreenMessageStyle.UPPER_CENTER);
             }
 
-            if (!EveCloudBridge.IsAvailable)
-            {
-                return;
-            }
-
             float warp = TimeWarp.CurrentRate * Time.timeScale;
             if (warp > ThunderboltSettings.MaxTimeWarp)
             {
@@ -103,7 +99,7 @@ namespace Thunderbolt
         private void DrawDebugWindow(int id)
         {
             Vessel vessel = FlightGlobals.ActiveVessel;
-            GUILayout.Label($"EVE bridge: {(EveCloudBridge.IsAvailable ? "OK" : "missing")}");
+            GUILayout.Label($"Storm mode: {StormSampler.ActiveModeLabel}");
             GUILayout.Label($"Vessel: {(vessel != null ? vessel.vesselName : "none")}");
             GUILayout.Label($"Key: {ThunderboltSettings.DebugStrikeKey}  |  RightAlt+D toggles debug");
             GUILayout.Label(lastDebugStatus);
@@ -136,15 +132,16 @@ namespace Thunderbolt
                 return;
             }
 
-            StormSample sample = BuildSyntheticSample(vessel);
-            if (EveCloudBridge.IsAvailable && EveCloudBridge.TrySampleStormAboveVessel(vessel, out StormSample eveSample))
+            StormSample sample;
+            if (StormSampler.TrySampleStormAboveVessel(vessel, out StormSample stormSample))
             {
-                sample = eveSample;
+                sample = stormSample;
                 lastDebugStatus =
-                    $"Forced strike (EVE cov={sample.Coverage:F2} freq={sample.LightningFrequency:F2} storm={sample.StormStrength:F2}).";
+                    $"Forced strike ({StormSampler.ActiveModeLabel} cov={sample.Coverage:F2} freq={sample.LightningFrequency:F2} storm={sample.StormStrength:F2}).";
             }
             else
             {
+                sample = BuildSyntheticSample(vessel);
                 lastDebugStatus = "Forced strike (synthetic cloud point).";
             }
 
@@ -198,12 +195,12 @@ namespace Thunderbolt
                     continue;
                 }
 
-                if (!EveCloudBridge.TrySampleStormAboveVessel(vessel, out StormSample sample))
+                if (!StormSampler.TrySampleStormAboveVessel(vessel, out StormSample sample))
                 {
                     continue;
                 }
 
-                // StormStrength already folds coverage × lightning × precip corroboration (EVE-style).
+                // StormStrength: EVE (coverage × lightning × precip) or atmospheric (Kerbin-relative ASL density).
                 float chance = ThunderboltSettings.BaseChancePerCheck * sample.StormStrength;
                 if (vessel == FlightGlobals.ActiveVessel)
                 {
@@ -309,11 +306,10 @@ namespace Thunderbolt
                 ThunderboltFx.Spawn(sample.CloudSampleWorldPosition, strikePoint);
             }
 
-            bool destroyed = false;
-            if (applyDamage)
-            {
-                destroyed = TryDestroyStruckPart(vessel, target, forced);
-            }
+            bool willDestroy = applyDamage && RollDestroyStruckPart(vessel, target, forced);
+
+            // BlastFX opaque fireball wraps the part, then quietly deletes it mid-burst.
+            ThunderboltBlastBridge.SpawnAtPoint(strikePoint, target, willDestroy);
 
             if (!forced)
             {
@@ -322,22 +318,22 @@ namespace Thunderbolt
 
             string targetTitle = GetStrikeDisplayName(vessel, target);
             string msg = forced
-                ? $"Forced lightning hit {vessel.vesselName} / {targetTitle} destroyed={destroyed}"
-                : $"Lightning struck {vessel.vesselName} / {targetTitle} destroyed={destroyed}";
+                ? $"Forced lightning hit {vessel.vesselName} / {targetTitle} destroyed={willDestroy}"
+                : $"Lightning struck {vessel.vesselName} / {targetTitle} destroyed={willDestroy}";
 
             ThunderboltSettings.Log(
                 msg + $" cov={sample.Coverage:F2} freq={sample.LightningFrequency:F2} storm={sample.StormStrength:F2} damage={applyDamage} eva={vessel.isEVA}");
 
             // Flight Results left-column event log (skip pure visual debug spam).
-            if (!forced || destroyed || applyDamage)
+            if (!forced || willDestroy || applyDamage)
             {
-                LogFlightResult(targetTitle, destroyed, vessel.isEVA);
+                LogFlightResult(targetTitle, willDestroy, vessel.isEVA);
             }
 
             if (ThunderboltSettings.ScreenMessages)
             {
                 string screen;
-                if (destroyed)
+                if (willDestroy)
                 {
                     screen = vessel.isEVA
                         ? Localizer.Format("#TB_evaKilledScreen", targetTitle)
@@ -350,7 +346,7 @@ namespace Thunderbolt
                         : Localizer.Format("#TB_strikeMessage", targetTitle);
                 }
 
-                if (!forced || destroyed)
+                if (!forced || willDestroy)
                 {
                     ScreenMessages.PostScreenMessage(screen, 4f, ScreenMessageStyle.UPPER_CENTER);
                 }
@@ -392,14 +388,16 @@ namespace Thunderbolt
                 ThunderboltFx.Spawn(sample.CloudSampleWorldPosition, strikePoint);
             }
 
-            bool destroyed = rod.TryAbsorbStrike(applyDamage);
+            bool willDestroy = rod.TryAbsorbStrike(applyDamage);
+            Part rodPart = (rod as ModuleThunderboltRod)?.part;
+            ThunderboltBlastBridge.SpawnAtPoint(strikePoint, rodPart, willDestroy);
 
             vesselCooldowns[vessel.persistentId] = Planetarium.GetUniversalTime() + ThunderboltSettings.VesselCooldown;
 
             string rodTitle = rod.DisplayName;
             ThunderboltSettings.Log(
                 $"Strike diverted to rod '{rodTitle}' protecting {vessel.vesselName} " +
-                $"destroyed={destroyed} cov={sample.Coverage:F2} freq={sample.LightningFrequency:F2}");
+                $"destroyed={willDestroy} cov={sample.Coverage:F2} freq={sample.LightningFrequency:F2}");
 
             LogFlightResultDiverted(rodTitle, vessel.vesselName);
 
@@ -589,10 +587,11 @@ namespace Thunderbolt
         }
 
         /// <summary>
-        /// Rolls to destroy the struck part directly. Returns true if the part was destroyed.
+        /// Rolls whether the struck part should be destroyed. Does not explode yet —
+        /// BlastFX deletes it once the opaque fireball covers the mesh.
         /// Forced debug strikes ignore root-part protection so single-part test craft can be destroyed.
         /// </summary>
-        private static bool TryDestroyStruckPart(Vessel vessel, Part target, bool forced)
+        private static bool RollDestroyStruckPart(Vessel vessel, Part target, bool forced)
         {
             if (target == null || target.State == PartStates.DEAD)
             {
@@ -611,8 +610,7 @@ namespace Thunderbolt
                     return false;
                 }
 
-                ThunderboltSettings.Log($"Killing EVA kerbal {title} (p={evaChance:F2}, forced={forced}).");
-                target.explode();
+                ThunderboltSettings.Log($"Scheduling EVA kill {title} behind fireball (p={evaChance:F2}, forced={forced}).");
                 return true;
             }
 
@@ -635,8 +633,7 @@ namespace Thunderbolt
                 return false;
             }
 
-            ThunderboltSettings.Log($"Destroying part {title} (p={chance:F2}, forced={forced}).");
-            target.explode();
+            ThunderboltSettings.Log($"Scheduling part destroy {title} behind fireball (p={chance:F2}, forced={forced}).");
             return true;
         }
 

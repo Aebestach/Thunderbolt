@@ -1,21 +1,41 @@
-﻿using UnityEngine;
+using UnityEngine;
 
 namespace Thunderbolt
 {
     /// <summary>
-    /// Runtime settings facade over the three difficulty-parameter columns.
+    /// Runtime settings facade over the difficulty-parameter columns.
     /// </summary>
     public static class ThunderboltSettings
     {
-        // Column 1 — strike
+        // Shared timing / eligibility (EVE column hosts these; both modes use them)
         public static float CheckInterval => Strike?.checkInterval ?? 3.5f;
-        public static float BaseChancePerCheck => Strike?.baseChancePerCheck ?? 0.018f;
         public static float MaxTimeWarp => Strike?.maxTimeWarp ?? 4f;
         public static float VesselCooldown => Strike?.vesselCooldown ?? 45f;
+        public static bool OnlyActiveVessel => Strike?.onlyActiveVessel ?? true;
+
+        // EVE cloud gates
         public static float MinCoverage => Strike?.minCoverage ?? 0.40f;
         public static float MinLightningFrequency => Strike?.minLightningFrequency ?? 0.25f;
-        public static bool OnlyActiveVessel => Strike?.onlyActiveVessel ?? true;
-        public static float InsideCloudChanceMultiplier => Strike?.insideCloudChanceMultiplier ?? 5f;
+
+        /// <summary>
+        /// Base chance for the active storm provider (EVE vs NonEVE).
+        /// </summary>
+        public static float BaseChancePerCheck =>
+            StormSampler.HasEveProvider
+                ? (Strike?.baseChancePerCheck ?? 0.018f)
+                : (NonEve?.baseChancePerCheck ?? 0.018f);
+
+        public static float InsideCloudChanceMultiplier =>
+            StormSampler.HasEveProvider
+                ? (Strike?.insideCloudChanceMultiplier ?? 5f)
+                : (NonEve?.insideStormChanceMultiplier ?? 5f);
+
+        // NonEVE / atmospheric (always available when EVE is absent)
+        public static float NonEveStormCellChance => NonEve?.stormCellChance ?? 0.38f;
+        public static float NonEveDensityPower => NonEve?.densityPower ?? 0.85f;
+        public static float NonEveStormStrengthScale => NonEve?.stormStrengthScale ?? 0.45f;
+        public static float NonEveMaxAltitudeFraction => NonEve?.maxAltitudeFraction ?? 0.42f;
+        public static float NonEveMaxAltitudeCap => NonEve?.maxAltitudeCap ?? 14000f;
 
         /// <summary>
         /// Extra coverage demanded when the vessel is below the cloud slab.
@@ -54,7 +74,7 @@ namespace Thunderbolt
         /// <summary>Procedural bolt shader intensity multiplier at full night.</summary>
         public const float NightBoltBoost = 1.85f;
 
-        // Column 2 — damage
+        // Damage
         public static float PartDestroyChance => Damage?.partDestroyChance ?? 0.45f;
         public static float VulnerableDestroyChance => Damage?.vulnerableDestroyChance ?? 0.8f;
         public static float CommandDestroyChance => Damage?.commandDestroyChance ?? 0.12f;
@@ -63,19 +83,20 @@ namespace Thunderbolt
         public static bool EnableDamage => Damage?.enableDamage ?? true;
         public static bool ScreenMessages => Damage?.screenMessages ?? true;
 
-        // Column 3 — debug
+        // Debug
         public static bool DebugLogging => Visual?.debugLogging ?? false;
         public static bool DebugMode => Visual?.debugMode ?? false;
         public static bool DebugApplyDamage => Visual?.debugApplyDamage ?? false;
         public static KeyCode DebugStrikeKey => Visual?.ResolvedStrikeKey ?? KeyCode.L;
 
         private static ThunderboltStrikeParameters Strike => ThunderboltStrikeParameters.Instance;
+        private static ThunderboltNonEveParameters NonEve => ThunderboltNonEveParameters.Instance;
         private static ThunderboltDamageParameters Damage => ThunderboltDamageParameters.Instance;
         private static ThunderboltVisualParameters Visual => ThunderboltVisualParameters.Instance;
 
         public static void Load()
         {
-            Log("Using difficulty settings (Strike / Damage / Debug). Bolt visuals from Thunderbolt/ProceduralBolt.");
+            Log("Using difficulty settings (Strike-EVE / Strike-NonEVE / Damage / Debug).");
         }
 
         public static void SetDebugMode(bool enabled)

@@ -1,47 +1,19 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using Atmosphere;
 using UnityEngine;
 
 namespace Thunderbolt
 {
-    internal readonly struct StormSample
-    {
-        public readonly float Coverage;
-        public readonly float LightningFrequency;
-        /// <summary>
-        /// Combined EVE-style storm score: coverage × lightning freq × precip corroboration.
-        /// Used for chance rolls so fair-weather dense clouds score lower than wet storms.
-        /// </summary>
-        public readonly float StormStrength;
-        public readonly Vector3 CloudSampleWorldPosition;
-        /// <summary>True when the vessel itself is inside a lightning-capable cloud volume.</summary>
-        public readonly bool IsInsideStormCloud;
-
-        public StormSample(
-            float coverage,
-            float lightningFrequency,
-            float stormStrength,
-            Vector3 cloudSampleWorldPosition,
-            bool isInsideStormCloud)
-        {
-            Coverage = coverage;
-            LightningFrequency = lightningFrequency;
-            StormStrength = stormStrength;
-            CloudSampleWorldPosition = cloudSampleWorldPosition;
-            IsInsideStormCloud = isInsideStormCloud;
-        }
-    }
-
     /// <summary>
     /// Direct bridge into EVE raymarched cloud volumes.
     /// Samples EVE for "when/where"; bolts are drawn only by Thunderbolt/ProceduralBolt.
     /// Storm gating mirrors EVE's weather stack: coverage, per-type lightningFrequency,
-    /// and precip/wetness densities — not coverage alone.
+    /// and precip/wetness densities � not coverage alone.
     /// </summary>
-    internal static class EveCloudBridge
+    public static class EveCloudBridge
     {
-        internal static bool IsAvailable { get; private set; }
+        public static bool IsAvailable { get; private set; }
 
         private static readonly Dictionary<string, List<CloudsRaymarchedVolume>> VolumesByBody =
             new Dictionary<string, List<CloudsRaymarchedVolume>>(StringComparer.OrdinalIgnoreCase);
@@ -51,7 +23,7 @@ namespace Thunderbolt
         // Column sample heights (fraction through the cloud slab) when the vessel is below clouds.
         private static readonly float[] BelowCloudSampleFractions = { 0.35f, 0.55f, 0.75f, 0.90f };
 
-        internal static void Initialize()
+        public static void Initialize()
         {
             if (IsAvailable)
             {
@@ -62,7 +34,8 @@ namespace Thunderbolt
             {
                 _ = CloudsManager.GetObjectList();
                 IsAvailable = true;
-                ThunderboltSettings.Log("EVE Atmosphere.dll linked — cloud bridge ready.");
+                StormSampler.RegisterEveProvider(() => IsAvailable, TrySampleStormAboveVessel);
+                ThunderboltSettings.Log("EVE Atmosphere.dll linked � cloud bridge ready.");
             }
             catch (Exception ex)
             {
@@ -71,7 +44,7 @@ namespace Thunderbolt
             }
         }
 
-        internal static bool TrySampleStormAboveVessel(Vessel vessel, out StormSample sample)
+        public static bool TrySampleStormAboveVessel(Vessel vessel, out StormSample sample)
         {
             sample = default;
             if (!IsAvailable || vessel == null || vessel.mainBody == null)
@@ -310,7 +283,7 @@ namespace Thunderbolt
                 return false;
             }
 
-            // Product floor kills thin cirrus with default freq=1 and thick calm fog with freq≈0.
+            // Product floor kills thin cirrus with default freq=1 and thick calm fog with freq?0.
             float productFloor = vesselInCloudHeight
                 ? ThunderboltSettings.StormProductFloorInside
                 : ThunderboltSettings.StormProductFloorBelow;
@@ -347,7 +320,7 @@ namespace Thunderbolt
             float precip,
             float relativeFreq)
         {
-            // Mirror EVE ParticleField/WetSurfaces: coverage × type density, with lightning weight.
+            // Mirror EVE ParticleField/WetSurfaces: coverage � type density, with lightning weight.
             float precipFactor = Mathf.Lerp(0.40f, 1f, Mathf.Clamp01(precip));
             float relativeFactor = Mathf.Lerp(0.70f, 1f, Mathf.Clamp01(relativeFreq));
             return Mathf.Clamp01(coverage * frequency * precipFactor * relativeFactor);
@@ -425,6 +398,19 @@ namespace Thunderbolt
 
                 list.Add(volume);
             }
+        }
+    }
+
+    /// <summary>
+    /// Flight-time init so CloudsManager is ready (same timing as the old Addon.Initialize).
+    /// </summary>
+    [KSPAddon(KSPAddon.Startup.Flight, false)]
+    public sealed class ThunderboltEveBootstrap : MonoBehaviour
+    {
+        private void Awake()
+        {
+            // Awake so the provider is registered before ThunderboltAddon.Start/Update.
+            EveCloudBridge.Initialize();
         }
     }
 }
