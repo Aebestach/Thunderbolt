@@ -53,7 +53,7 @@ namespace Thunderbolt
             maxValue = 1f,
             stepCount = 50,
             displayFormat = "F2")]
-        public float minCoverage = 0.35f;
+        public float minCoverage = 0.40f;
 
         [GameParameters.CustomFloatParameterUI(
             "#TB_ParamMinLightningFrequency",
@@ -62,7 +62,7 @@ namespace Thunderbolt
             maxValue = 1f,
             stepCount = 50,
             displayFormat = "F2")]
-        public float minLightningFrequency = 0.15f;
+        public float minLightningFrequency = 0.25f;
 
         [GameParameters.CustomFloatParameterUI(
             "#TB_ParamMaxTimeWarp",
@@ -96,8 +96,8 @@ namespace Thunderbolt
                     baseChancePerCheck = 0.01f;
                     checkInterval = 5f;
                     vesselCooldown = 60f;
-                    minCoverage = 0.45f;
-                    minLightningFrequency = 0.25f;
+                    minCoverage = 0.50f;
+                    minLightningFrequency = 0.35f;
                     maxTimeWarp = 4f;
                     onlyActiveVessel = true;
                     insideCloudChanceMultiplier = 3f;
@@ -106,8 +106,8 @@ namespace Thunderbolt
                     baseChancePerCheck = 0.028f;
                     checkInterval = 2.5f;
                     vesselCooldown = 30f;
-                    minCoverage = 0.25f;
-                    minLightningFrequency = 0.1f;
+                    minCoverage = 0.32f;
+                    minLightningFrequency = 0.18f;
                     maxTimeWarp = 4f;
                     onlyActiveVessel = true;
                     insideCloudChanceMultiplier = 7f;
@@ -116,8 +116,8 @@ namespace Thunderbolt
                     baseChancePerCheck = 0.045f;
                     checkInterval = 2f;
                     vesselCooldown = 20f;
-                    minCoverage = 0.18f;
-                    minLightningFrequency = 0.08f;
+                    minCoverage = 0.25f;
+                    minLightningFrequency = 0.12f;
                     maxTimeWarp = 4f;
                     onlyActiveVessel = true;
                     insideCloudChanceMultiplier = 10f;
@@ -127,8 +127,8 @@ namespace Thunderbolt
                     baseChancePerCheck = 0.018f;
                     checkInterval = 3.5f;
                     vesselCooldown = 45f;
-                    minCoverage = 0.35f;
-                    minLightningFrequency = 0.15f;
+                    minCoverage = 0.40f;
+                    minLightningFrequency = 0.25f;
                     maxTimeWarp = 4f;
                     onlyActiveVessel = true;
                     insideCloudChanceMultiplier = 5f;

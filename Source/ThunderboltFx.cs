@@ -23,6 +23,8 @@ namespace Thunderbolt
         private float life;
         private float startLife;
         private float startIntensity;
+        private float nightLightBoost = 1f;
+        private float nightBoltBoost = 1f;
         private Vector3 boltUpAxis = Vector3.up;
 
         /// <summary>
@@ -64,9 +66,12 @@ namespace Thunderbolt
             EnsureSounds();
 
             LightningConfig eveCfg = TryGetEveLightningConfig();
+            Vector3 mid = points[points.Count / 2];
+            nightLightBoost = ThunderboltSettings.GetNightBrightnessMultiplier(mid, ThunderboltSettings.NightLightBoost);
+            nightBoltBoost = ThunderboltSettings.GetNightBrightnessMultiplier(mid, ThunderboltSettings.NightBoltBoost);
+
             BeginLifetime(eveCfg);
 
-            Vector3 mid = points[points.Count / 2];
             transform.position = mid;
             AttachLight(points.Count > 1 ? points[1] : mid, eveCfg);
 
@@ -104,12 +109,15 @@ namespace Thunderbolt
         {
             startLife = Mathf.Max(0.08f, eveCfg != null ? eveCfg.LifeTime : 0.5f);
             life = startLife;
-            startIntensity = eveCfg != null ? eveCfg.LightIntensity : 4.5f;
+            float baseIntensity = eveCfg != null ? eveCfg.LightIntensity : 4.5f;
+            startIntensity = baseIntensity * nightLightBoost;
         }
 
         private void AttachLight(Vector3 position, LightningConfig eveCfg)
         {
             float lightRange = eveCfg != null ? eveCfg.LightRange : 9000f;
+            // Slightly longer reach at night so the flash reads against a dark sky.
+            lightRange *= Mathf.Lerp(1f, 1.15f, Mathf.InverseLerp(1f, ThunderboltSettings.NightLightBoost, nightLightBoost));
             pointLight = gameObject.AddComponent<Light>();
             pointLight.type = LightType.Point;
             pointLight.color = GetBoltLightColor();
@@ -121,7 +129,8 @@ namespace Thunderbolt
 
         private bool SpawnProceduralSegment(Vector3 from, Vector3 to, float seed, Color color)
         {
-            if (!ThunderboltProceduralBolt.TryCreateMaterial(seed, color, out Material mat))
+            float intensity = 8f * nightBoltBoost;
+            if (!ThunderboltProceduralBolt.TryCreateMaterial(seed, color, out Material mat, intensity))
             {
                 return false;
             }

@@ -140,7 +140,8 @@ namespace Thunderbolt
             if (EveCloudBridge.IsAvailable && EveCloudBridge.TrySampleStormAboveVessel(vessel, out StormSample eveSample))
             {
                 sample = eveSample;
-                lastDebugStatus = $"Forced strike (EVE cov={sample.Coverage:F2} freq={sample.LightningFrequency:F2}).";
+                lastDebugStatus =
+                    $"Forced strike (EVE cov={sample.Coverage:F2} freq={sample.LightningFrequency:F2} storm={sample.StormStrength:F2}).";
             }
             else
             {
@@ -165,7 +166,7 @@ namespace Thunderbolt
             Vector3 vesselPos = vessel.GetWorldPos3D();
             Vector3 up = (vesselPos - bodyPos).normalized;
             float radius = (vesselPos - bodyPos).magnitude + 2500f;
-            return new StormSample(1f, 1f, bodyPos + up * radius, isInsideStormCloud: false);
+            return new StormSample(1f, 1f, 1f, bodyPos + up * radius, isInsideStormCloud: false);
         }
 
         private static bool IsUiBlockingInput()
@@ -202,7 +203,8 @@ namespace Thunderbolt
                     continue;
                 }
 
-                float chance = ThunderboltSettings.BaseChancePerCheck * sample.Coverage * sample.LightningFrequency;
+                // StormStrength already folds coverage × lightning × precip corroboration (EVE-style).
+                float chance = ThunderboltSettings.BaseChancePerCheck * sample.StormStrength;
                 if (vessel == FlightGlobals.ActiveVessel)
                 {
                     chance *= 1.35f;
@@ -217,7 +219,8 @@ namespace Thunderbolt
                 chance = Mathf.Clamp01(chance);
 
                 ThunderboltSettings.Log(
-                    $"Candidate {vessel.vesselName}: cov={sample.Coverage:F2} freq={sample.LightningFrequency:F2} inside={sample.IsInsideStormCloud} chance={chance:F3}");
+                    $"Candidate {vessel.vesselName}: cov={sample.Coverage:F2} freq={sample.LightningFrequency:F2} " +
+                    $"storm={sample.StormStrength:F2} inside={sample.IsInsideStormCloud} chance={chance:F3}");
 
                 if (Random.value > chance)
                 {
@@ -322,7 +325,8 @@ namespace Thunderbolt
                 ? $"Forced lightning hit {vessel.vesselName} / {targetTitle} destroyed={destroyed}"
                 : $"Lightning struck {vessel.vesselName} / {targetTitle} destroyed={destroyed}";
 
-            ThunderboltSettings.Log(msg + $" cov={sample.Coverage:F2} freq={sample.LightningFrequency:F2} damage={applyDamage} eva={vessel.isEVA}");
+            ThunderboltSettings.Log(
+                msg + $" cov={sample.Coverage:F2} freq={sample.LightningFrequency:F2} storm={sample.StormStrength:F2} damage={applyDamage} eva={vessel.isEVA}");
 
             // Flight Results left-column event log (skip pure visual debug spam).
             if (!forced || destroyed || applyDamage)

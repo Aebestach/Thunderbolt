@@ -16,7 +16,7 @@ namespace Thunderbolt
             return Mathf.Clamp(length * LengthToWidth, MinWorldWidth, MaxWorldWidth);
         }
 
-        internal static bool TryCreateMaterial(float seed, Color color, out Material material)
+        internal static bool TryCreateMaterial(float seed, Color color, out Material material, float intensity = 8f)
         {
             material = null;
 
@@ -32,7 +32,7 @@ namespace Thunderbolt
             material.SetFloat("_Seed", seed);
             material.SetFloat("_CoreWidth", 0.014f);
             material.SetFloat("_GlowWidth", 0.065f);
-            material.SetFloat("_Intensity", 8f);
+            material.SetFloat("_Intensity", Mathf.Max(0.1f, intensity));
             material.SetFloat("_Bend", 0.65f);
             material.SetFloat("_Branch", 1.0f);
             material.renderQueue = 2999;

@@ -12,8 +12,8 @@ namespace Thunderbolt
         public static float BaseChancePerCheck => Strike?.baseChancePerCheck ?? 0.018f;
         public static float MaxTimeWarp => Strike?.maxTimeWarp ?? 4f;
         public static float VesselCooldown => Strike?.vesselCooldown ?? 45f;
-        public static float MinCoverage => Strike?.minCoverage ?? 0.35f;
-        public static float MinLightningFrequency => Strike?.minLightningFrequency ?? 0.15f;
+        public static float MinCoverage => Strike?.minCoverage ?? 0.40f;
+        public static float MinLightningFrequency => Strike?.minLightningFrequency ?? 0.25f;
         public static bool OnlyActiveVessel => Strike?.onlyActiveVessel ?? true;
         public static float InsideCloudChanceMultiplier => Strike?.insideCloudChanceMultiplier ?? 5f;
 
@@ -21,7 +21,38 @@ namespace Thunderbolt
         /// Extra coverage demanded when the vessel is below the cloud slab.
         /// Blocks thin/high samples that still look like clear sky from the ground.
         /// </summary>
-        public const float BelowCloudCoverageFloor = 0.5f;
+        public const float BelowCloudCoverageFloor = 0.65f;
+
+        /// <summary>Skip volumes whose EVE time-fade has effectively disabled the layer.</summary>
+        public const float MinTimeFade = 0.05f;
+
+        /// <summary>
+        /// Sampled lightningFrequency must be at least this fraction of the volume's
+        /// highest cloud-type lightningFrequency (EVE-authored storm types).
+        /// </summary>
+        public const float MinRelativeLightningFrequency = 0.40f;
+
+        /// <summary>Minimum coverage × lightningFrequency when inside the cloud slab.</summary>
+        public const float StormProductFloorInside = 0.14f;
+
+        /// <summary>Minimum coverage × lightningFrequency when below the cloud slab.</summary>
+        public const float StormProductFloorBelow = 0.28f;
+
+        /// <summary>
+        /// Strong lightning column can pass below-cloud gates without precip corroboration.
+        /// </summary>
+        public const float StrongStormProduct = 0.48f;
+
+        /// <summary>
+        /// Minimum EVE precip/wet/droplet density used as storm corroboration below clouds.
+        /// </summary>
+        public const float MinPrecipSignal = 0.20f;
+
+        /// <summary>Point-light intensity multiplier at full night.</summary>
+        public const float NightLightBoost = 2.4f;
+
+        /// <summary>Procedural bolt shader intensity multiplier at full night.</summary>
+        public const float NightBoltBoost = 1.85f;
 
         // Column 2 — damage
         public static float PartDestroyChance => Damage?.partDestroyChance ?? 0.45f;
@@ -61,6 +92,26 @@ namespace Thunderbolt
             {
                 Visual.debugApplyDamage = enabled;
             }
+        }
+
+        /// <summary>
+        /// 1 at daytime, up to the given night multiplier after sunset / in darkness.
+        /// </summary>
+        public static float GetNightBrightnessMultiplier(Vector3 worldPos, float nightMultiplier)
+        {
+            CelestialBody body = FlightGlobals.currentMainBody;
+            if (body == null || Sun.Instance == null || Sun.Instance.sun == null)
+            {
+                return 1f;
+            }
+
+            Vector3 up = (worldPos - body.position).normalized;
+            Vector3 toSun = (Sun.Instance.sun.position - body.position).normalized;
+            float sunElevation = Vector3.Dot(up, toSun);
+
+            // ~day above +0.12, full night below -0.08, smooth twilight in between.
+            float night = Mathf.SmoothStep(0f, 1f, Mathf.InverseLerp(0.12f, -0.08f, sunElevation));
+            return Mathf.Lerp(1f, nightMultiplier, night);
         }
 
         public static void Log(string message)
