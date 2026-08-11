@@ -1,4 +1,4 @@
-using UnityEngine;
+﻿using UnityEngine;
 
 namespace Thunderbolt
 {
@@ -7,11 +7,11 @@ namespace Thunderbolt
     /// </summary>
     public static class ThunderboltSettings
     {
-        // Shared timing / eligibility (EVE column hosts these; both modes use them)
-        public static float CheckInterval => Strike?.checkInterval ?? 3.5f;
-        public static float MaxTimeWarp => Strike?.maxTimeWarp ?? 4f;
-        public static float VesselCooldown => Strike?.vesselCooldown ?? 45f;
-        public static bool OnlyActiveVessel => Strike?.onlyActiveVessel ?? true;
+        // Shared timing / eligibility (page 1 column 3)
+        public static float CheckInterval => Shared?.checkInterval ?? 3.5f;
+        public static float MaxTimeWarp => Shared?.maxTimeWarp ?? 4f;
+        public static float VesselCooldown => Shared?.vesselCooldown ?? 45f;
+        public static bool OnlyActiveVessel => Shared?.onlyActiveVessel ?? true;
 
         // EVE cloud gates
         public static float MinCoverage => Strike?.minCoverage ?? 0.40f;
@@ -91,12 +91,13 @@ namespace Thunderbolt
 
         private static ThunderboltStrikeParameters Strike => ThunderboltStrikeParameters.Instance;
         private static ThunderboltNonEveParameters NonEve => ThunderboltNonEveParameters.Instance;
+        private static ThunderboltSharedParameters Shared => ThunderboltSharedParameters.Instance;
         private static ThunderboltDamageParameters Damage => ThunderboltDamageParameters.Instance;
         private static ThunderboltVisualParameters Visual => ThunderboltVisualParameters.Instance;
 
         public static void Load()
         {
-            Log("Using difficulty settings (Strike-EVE / Strike-NonEVE / Damage / Debug).");
+            Log("Using difficulty settings (EVE / NonEVE / Shared / Damage / Debug).");
         }
 
         public static void SetDebugMode(bool enabled)

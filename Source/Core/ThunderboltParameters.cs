@@ -8,7 +8,7 @@ using UnityEngine;
 namespace Thunderbolt
 {
     /// <summary>
-    /// Column 1 — EVE / volumetric-cloud strike chance and shared timing.
+    /// Page 1 col 1 — EVE / volumetric-cloud strike knobs.
     /// </summary>
     public class ThunderboltStrikeParameters : GameParameters.CustomParameterNode
     {
@@ -29,24 +29,6 @@ namespace Thunderbolt
         public float baseChancePerCheck = 0.018f;
 
         [GameParameters.CustomFloatParameterUI(
-            "#TB_ParamCheckInterval",
-            toolTip = "#TB_ParamCheckInterval_tip",
-            minValue = 0.5f,
-            maxValue = 30f,
-            stepCount = 59,
-            displayFormat = "F1")]
-        public float checkInterval = 3.5f;
-
-        [GameParameters.CustomFloatParameterUI(
-            "#TB_ParamVesselCooldown",
-            toolTip = "#TB_ParamVesselCooldown_tip",
-            minValue = 0f,
-            maxValue = 300f,
-            stepCount = 60,
-            displayFormat = "F0")]
-        public float vesselCooldown = 45f;
-
-        [GameParameters.CustomFloatParameterUI(
             "#TB_ParamMinCoverage",
             toolTip = "#TB_ParamMinCoverage_tip",
             minValue = 0f,
@@ -63,18 +45,6 @@ namespace Thunderbolt
             stepCount = 50,
             displayFormat = "F2")]
         public float minLightningFrequency = 0.25f;
-
-        [GameParameters.CustomFloatParameterUI(
-            "#TB_ParamMaxTimeWarp",
-            toolTip = "#TB_ParamMaxTimeWarp_tip",
-            minValue = 1f,
-            maxValue = 100f,
-            stepCount = 99,
-            displayFormat = "F0")]
-        public float maxTimeWarp = 4f;
-
-        [GameParameters.CustomParameterUI("#TB_ParamOnlyActive", toolTip = "#TB_ParamOnlyActive_tip")]
-        public bool onlyActiveVessel = true;
 
         [GameParameters.CustomFloatParameterUI(
             "#TB_ParamInsideCloudMultiplier",
@@ -94,44 +64,106 @@ namespace Thunderbolt
             {
                 case GameParameters.Preset.Easy:
                     baseChancePerCheck = 0.01f;
-                    checkInterval = 5f;
-                    vesselCooldown = 60f;
                     minCoverage = 0.50f;
                     minLightningFrequency = 0.35f;
-                    maxTimeWarp = 4f;
-                    onlyActiveVessel = true;
                     insideCloudChanceMultiplier = 3f;
                     break;
                 case GameParameters.Preset.Moderate:
                     baseChancePerCheck = 0.028f;
-                    checkInterval = 2.5f;
-                    vesselCooldown = 30f;
                     minCoverage = 0.32f;
                     minLightningFrequency = 0.18f;
-                    maxTimeWarp = 4f;
-                    onlyActiveVessel = true;
                     insideCloudChanceMultiplier = 7f;
                     break;
                 case GameParameters.Preset.Hard:
                     baseChancePerCheck = 0.045f;
-                    checkInterval = 2f;
-                    vesselCooldown = 20f;
                     minCoverage = 0.25f;
                     minLightningFrequency = 0.12f;
-                    maxTimeWarp = 4f;
-                    onlyActiveVessel = true;
                     insideCloudChanceMultiplier = 10f;
                     break;
                 case GameParameters.Preset.Normal:
                 default:
                     baseChancePerCheck = 0.018f;
-                    checkInterval = 3.5f;
-                    vesselCooldown = 45f;
                     minCoverage = 0.40f;
                     minLightningFrequency = 0.25f;
+                    insideCloudChanceMultiplier = 5f;
+                    break;
+            }
+        }
+    }
+
+    /// <summary>
+    /// Page 1 col 3 — timing / eligibility shared by EVE and NonEVE.
+    /// </summary>
+    public class ThunderboltSharedParameters : GameParameters.CustomParameterNode
+    {
+        public override string Title => Localizer.Format("#TB_ParamTitleShared");
+        public override GameParameters.GameMode GameMode => GameParameters.GameMode.ANY;
+        public override string Section => Localizer.Format("#TB_ParamSection1");
+        public override string DisplaySection => Localizer.Format("#TB_ParamSection1");
+        public override int SectionOrder => 2;
+        public override bool HasPresets => true;
+
+        [GameParameters.CustomFloatParameterUI(
+            "#TB_ParamCheckInterval",
+            toolTip = "#TB_ParamCheckInterval_tip",
+            minValue = 0.5f,
+            maxValue = 30f,
+            stepCount = 59,
+            displayFormat = "F1")]
+        public float checkInterval = 3.5f;
+
+        [GameParameters.CustomFloatParameterUI(
+            "#TB_ParamVesselCooldown",
+            toolTip = "#TB_ParamVesselCooldown_tip",
+            minValue = 0f,
+            maxValue = 300f,
+            stepCount = 60,
+            displayFormat = "F0")]
+        public float vesselCooldown = 45f;
+
+        [GameParameters.CustomFloatParameterUI(
+            "#TB_ParamMaxTimeWarp",
+            toolTip = "#TB_ParamMaxTimeWarp_tip",
+            minValue = 1f,
+            maxValue = 100f,
+            stepCount = 99,
+            displayFormat = "F0")]
+        public float maxTimeWarp = 4f;
+
+        [GameParameters.CustomParameterUI("#TB_ParamOnlyActive", toolTip = "#TB_ParamOnlyActive_tip")]
+        public bool onlyActiveVessel = true;
+
+        public static ThunderboltSharedParameters Instance =>
+            HighLogic.CurrentGame?.Parameters.CustomParams<ThunderboltSharedParameters>();
+
+        public override void SetDifficultyPreset(GameParameters.Preset preset)
+        {
+            switch (preset)
+            {
+                case GameParameters.Preset.Easy:
+                    checkInterval = 5f;
+                    vesselCooldown = 60f;
                     maxTimeWarp = 4f;
                     onlyActiveVessel = true;
-                    insideCloudChanceMultiplier = 5f;
+                    break;
+                case GameParameters.Preset.Moderate:
+                    checkInterval = 2.5f;
+                    vesselCooldown = 30f;
+                    maxTimeWarp = 4f;
+                    onlyActiveVessel = true;
+                    break;
+                case GameParameters.Preset.Hard:
+                    checkInterval = 2f;
+                    vesselCooldown = 20f;
+                    maxTimeWarp = 4f;
+                    onlyActiveVessel = true;
+                    break;
+                case GameParameters.Preset.Normal:
+                default:
+                    checkInterval = 3.5f;
+                    vesselCooldown = 45f;
+                    maxTimeWarp = 4f;
+                    onlyActiveVessel = true;
                     break;
             }
         }
