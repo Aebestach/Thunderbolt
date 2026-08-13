@@ -1,12 +1,11 @@
 ﻿using System.Collections.Generic;
-using Atmosphere;
 using UnityEngine;
 
 namespace Thunderbolt
 {
     /// <summary>
     /// Vessel-targeted bolt FX via Thunderbolt/ProceduralBolt only.
-    /// EVE LightningConfig is still used for lifetime, light, colour, and thunder clips.
+    /// Optional EVE LightningConfig (via soft reflection) supplies lifetime, light, colour, and thunder clips.
     /// </summary>
     public class ThunderboltFx : MonoBehaviour
     {
@@ -65,7 +64,7 @@ namespace Thunderbolt
         {
             EnsureSounds();
 
-            LightningConfig eveCfg = TryGetEveLightningConfig();
+            EveLightningHints eveCfg = EveLightningHints.TryGet();
             Vector3 mid = points[points.Count / 2];
             nightLightBoost = ThunderboltSettings.GetNightBrightnessMultiplier(mid, ThunderboltSettings.NightLightBoost);
             nightBoltBoost = ThunderboltSettings.GetNightBrightnessMultiplier(mid, ThunderboltSettings.NightBoltBoost);
@@ -105,7 +104,7 @@ namespace Thunderbolt
             PlayEveThunderSound(mid);
         }
 
-        private void BeginLifetime(LightningConfig eveCfg)
+        private void BeginLifetime(EveLightningHints eveCfg)
         {
             startLife = Mathf.Max(0.08f, eveCfg != null ? eveCfg.LifeTime : 0.5f);
             life = startLife;
@@ -113,7 +112,7 @@ namespace Thunderbolt
             startIntensity = baseIntensity * nightLightBoost;
         }
 
-        private void AttachLight(Vector3 position, LightningConfig eveCfg)
+        private void AttachLight(Vector3 position, EveLightningHints eveCfg)
         {
             float lightRange = eveCfg != null ? eveCfg.LightRange : 9000f;
             // Slightly longer reach at night so the flash reads against a dark sky.
@@ -214,7 +213,7 @@ namespace Thunderbolt
                 return;
             }
 
-            LightningConfig cfg = TryGetEveLightningConfig();
+            EveLightningHints cfg = EveLightningHints.TryGet();
             float maxDist = cfg != null ? cfg.SoundMaxDistance : 15000f;
             float minDist = cfg != null ? cfg.SoundMinDistance : 2000f;
             float farThreshold = cfg != null ? cfg.SoundFarThreshold : 5000f;
@@ -370,19 +369,41 @@ namespace Thunderbolt
             NearClips.Clear();
             FarClips.Clear();
 
-            LightningConfig cfg = TryGetEveLightningConfig();
-            if (cfg == null)
+            EveLightningHints cfg = EveLightningHints.TryGet();
+            if (cfg != null)
             {
-                ThunderboltSettings.LogWarning("No EVE lightning config — thunder sounds unavailable.");
-                return;
+                LoadClips(cfg.NearSoundNames, NearClips);
+                LoadClips(cfg.FarSoundNames, FarClips);
+                ThunderboltSettings.Log($"Loaded EVE thunder clips: near={NearClips.Count}, far={FarClips.Count}");
             }
 
-            LoadClips(cfg.NearSoundNames, NearClips);
-            LoadClips(cfg.FarSoundNames, FarClips);
-            ThunderboltSettings.Log($"Loaded EVE thunder clips: near={NearClips.Count}, far={FarClips.Count}");
+            // No EVE (or empty EVE sound lists): stock explosion booms for NonEVE strikes.
+            if (NearClips.Count == 0)
+            {
+                LoadStockClip("sound_explosion_large", NearClips);
+                LoadStockClip("Squad/Sounds/sound_explosion_large", NearClips);
+                LoadStockClip("fireworks_explosion_2", NearClips);
+                LoadStockClip("Squad/Sounds/fireworks_explosion_2", NearClips);
+            }
+
+            if (FarClips.Count == 0)
+            {
+                LoadStockClip("sound_explosion_debris1", FarClips);
+                LoadStockClip("sound_explosion_debris2", FarClips);
+                LoadStockClip("Squad/Sounds/sound_explosion_debris1", FarClips);
+                LoadStockClip("Squad/Sounds/sound_explosion_debris2", FarClips);
+                if (FarClips.Count == 0)
+                {
+                    FarClips.AddRange(NearClips);
+                }
+            }
+
+            ThunderboltSettings.Log(
+                $"Thunder sound pools: near={NearClips.Count}, far={FarClips.Count}" +
+                (cfg == null ? " (stock NonEVE fallback)" : string.Empty));
         }
 
-        private static void LoadClips(List<LightningSoundConfig> names, List<AudioClip> into)
+        private static void LoadClips(List<string> names, List<AudioClip> into)
         {
             if (names == null)
             {
@@ -391,66 +412,38 @@ namespace Thunderbolt
 
             for (int i = 0; i < names.Count; i++)
             {
-                string path = names[i]?.SoundName;
-                if (string.IsNullOrEmpty(path))
-                {
-                    continue;
-                }
-
-                if (GameDatabase.Instance.ExistsAudioClip(path))
-                {
-                    into.Add(GameDatabase.Instance.GetAudioClip(path));
-                }
+                LoadStockClip(names[i], into);
             }
         }
 
-        private static LightningConfig TryGetEveLightningConfig()
+        private static void LoadStockClip(string path, List<AudioClip> into)
         {
-            try
+            if (string.IsNullOrEmpty(path) || GameDatabase.Instance == null)
             {
-                List<LightningConfig> list = LightningManager.GetObjectList();
-                if (list == null || list.Count == 0)
-                {
-                    return null;
-                }
-
-                string bodyName = FlightGlobals.currentMainBody != null ? FlightGlobals.currentMainBody.bodyName : null;
-                if (!string.IsNullOrEmpty(bodyName))
-                {
-                    for (int i = 0; i < list.Count; i++)
-                    {
-                        if (list[i]?.Name != null && list[i].Name.IndexOf(bodyName, System.StringComparison.OrdinalIgnoreCase) >= 0)
-                        {
-                            return list[i];
-                        }
-                    }
-                }
-
-                for (int i = 0; i < list.Count; i++)
-                {
-                    if (list[i] != null && list[i].Name != null && list[i].Name.IndexOf("Kerbin", System.StringComparison.OrdinalIgnoreCase) >= 0)
-                    {
-                        return list[i];
-                    }
-                }
-
-                return list[0];
+                return;
             }
-            catch
+
+            if (!GameDatabase.Instance.ExistsAudioClip(path))
             {
-                return null;
+                return;
+            }
+
+            AudioClip clip = GameDatabase.Instance.GetAudioClip(path);
+            if (clip != null && !into.Contains(clip))
+            {
+                into.Add(clip);
             }
         }
 
         private static Color GetBoltColor()
         {
-            LightningConfig cfg = TryGetEveLightningConfig();
+            EveLightningHints cfg = EveLightningHints.TryGet();
             return cfg != null ? cfg.BoltColor : new Color(1.2f, 1.2f, 1.2f, 1f);
         }
 
         private static Color GetBoltLightColor()
         {
-            LightningConfig cfg = TryGetEveLightningConfig();
+            EveLightningHints cfg = EveLightningHints.TryGet();
             return cfg != null ? cfg.LightColor : new Color(0.55f, 0.6f, 1f, 1f);
         }
 

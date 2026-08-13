@@ -149,6 +149,10 @@ namespace Thunderbolt
             }
         }
 
+        /// <summary>
+        /// Rolls whether this rod is destroyed. Actual explode is deferred to
+        /// BlastFX so the opaque fireball can cover the mesh first.
+        /// </summary>
         public bool TryAbsorbStrike(bool applyDamage)
         {
             if (!applyDamage || !canBeDestroyed || part == null || part.State == PartStates.DEAD)
@@ -162,8 +166,7 @@ namespace Thunderbolt
                 return false;
             }
 
-            ThunderboltSettings.Log($"Lightning rod absorbed strike and was destroyed: {DisplayName}");
-            part.explode();
+            ThunderboltSettings.Log($"Lightning rod scheduled for destroy behind fireball: {DisplayName}");
             return true;
         }
     }

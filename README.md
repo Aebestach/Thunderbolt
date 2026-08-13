@@ -5,7 +5,7 @@
 
 ## Introduction
 In blackrack's **[True Volumetric Clouds](https://www.patreon.com/c/blackrack/posts)**, storm lightning is primarily a visual effect.
-**Thunderbolt** adds interaction on top of that: when a vessel is under a lightning-capable cloud layer, bolts may strike the craft, with optional part destruction.
+**Thunderbolt** adds interaction on top of that: when a vessel is under a lightning-capable cloud layer, bolts may strike the craft, with optional part destruction. Without EVE / volumetric clouds, an atmospheric mode is still available — it uses each body's sea-level density relative to Kerbin (denser → higher chance, thinner → lower); airless bodies never strike.
 
 Damage can be disabled in the difficulty settings if you only want the visuals. A shared lightning-rod module is also provided for parts and Kerbal Konstructs static towers — nearby strikes are diverted to the rod with high probability, but not with absolute immunity.
 
@@ -18,18 +18,21 @@ Damage can be disabled in the difficulty settings if you only want the visuals. 
 ![Strike](https://i.imgur.com/HoP45vf.png)
 ![Strike](https://i.imgur.com/XOwbfYR.png)
 
-## Dependencies
-* **[True Volumetric Clouds](https://www.patreon.com/c/blackrack/posts)** —— Builds with lightning should work; tested on **v5** only.
+## Recommended
+Thunderbolt runs on its own. These mods improve the experience:
+
+* **[True Volumetric Clouds](https://www.patreon.com/c/blackrack/posts)** —— Cloud-synced strikes via `ThunderboltEVE.dll`; tested on **v5**.
 
 ## Installation
-Drop the `Thunderbolt` folder from the archive's `GameData` into your game's root `GameData` directory.
+Drop the folders from the archive's `GameData` into your game's root `GameData` directory. **BlastFX** is bundled in the archive for the fireball when lightning destroys a part; you can delete `GameData/BlastFX` if you don't need it. Please note that this destroy effect is not perfect yet.
 
 ## Eligible Vessels
 A vessel may be struck when all of the following are true:
 
 * It is **loaded** (not packed/unloaded) in **Flying / Pre-Launch / Landed / Splashed / EVA**
 * It is on a body with an atmosphere, and below the atmosphere top
-* A lightning-capable volume-cloud layer is above it (coverage and lightning frequency meet the difficulty thresholds)
+* **EVE mode:** a lightning-capable volume-cloud layer is above it (coverage / lightning frequency thresholds)
+* **Atmospheric mode:** vessel is in a lower-atmosphere band; storm cells are random in space/time, scaled by ASL density vs Kerbin
 
 EVA kerbals can also be struck; their kill chance is kept separately low (adjustable in difficulty settings).
 

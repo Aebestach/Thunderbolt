@@ -2,14 +2,14 @@
   <PropertyGroup>
     <Version>1.2.0</Version>
     <FileVersion>$(Version)</FileVersion>
-    <AssemblyName>Thunderbolt</AssemblyName>
-    <RootNamespace>Thunderbolt</RootNamespace>
+    <AssemblyName>ThunderboltEVE</AssemblyName>
+    <RootNamespace>Thunderbolt.EVE</RootNamespace>
     <TargetFramework>net481</TargetFramework>
 
-    <Description>Atmospheric lightning that can strike vessels — Thunderbolt.</Description>
+    <Description>Optional EVE / True Volumetric Clouds bridge for Thunderbolt.</Description>
     <Product>Thunderbolt</Product>
 
-    <KSPBT_ModRoot>$(ProjectRootDir)GameData\$(AssemblyName)</KSPBT_ModRoot>
+    <KSPBT_ModRoot>$(ProjectRootDir)GameData\Thunderbolt</KSPBT_ModRoot>
     <KSPBT_ModPluginFolder>Plugins</KSPBT_ModPluginFolder>
 
     <LangVersion>latest</LangVersion>
@@ -25,28 +25,25 @@
     <PackageReference Include="KSPBuildTools" Version="1.1.1" />
   </ItemGroup>
 
-  <!-- Optional EVE bridge + Unity shader project are not part of Thunderbolt.dll -->
   <ItemGroup>
-    <Compile Remove="Eve\**\*" />
-    <None Include="Eve\**\*" />
-    <Compile Remove="Unity\**\*" />
-    <None Include="Unity\**\*" />
-  </ItemGroup>
-
-  <ItemGroup>
-    <KSPVersionFile Include=".">
-      <Destination>$(KSPBT_ModRoot)/$(AssemblyName).version</Destination>
-      <URL>https://github.com/Aebestach/Thunderbolt/releases/latest/download/Thunderbolt.version</URL>
-      <Download>https://github.com/Aebestach/Thunderbolt/releases/latest</Download>
-      <KSP_Version>1.12.5</KSP_Version>
-      <KSP_Version_Min>1.12.0</KSP_Version_Min>
-      <KSP_Version_Max>1.12.99</KSP_Version_Max>
-    </KSPVersionFile>
+    <ProjectReference Include="..\Thunderbolt.csproj" />
+    <ModReference Include="Atmosphere">
+      <DLLPath>GameData/EnvironmentalVisualEnhancements/Plugins/Atmosphere.dll</DLLPath>
+    </ModReference>
+    <ModReference Include="EVEManager">
+      <DLLPath>GameData/EnvironmentalVisualEnhancements/Plugins/EVEManager.dll</DLLPath>
+    </ModReference>
+    <ModReference Include="Utils">
+      <DLLPath>GameData/EnvironmentalVisualEnhancements/Plugins/Utils.dll</DLLPath>
+    </ModReference>
+    <ModReference Include="ShaderLoader">
+      <DLLPath>GameData/EnvironmentalVisualEnhancements/Plugins/ShaderLoader.dll</DLLPath>
+    </ModReference>
   </ItemGroup>
 
   <Target Name="DeployGameDataToKsp" AfterTargets="KSPBT_CopyDLLsToPluginFolder" Condition=" '$(KSPBT_GameRoot)' != '' ">
     <PropertyGroup>
-      <_KspModDeployDir>$(KSPBT_GameRoot)/GameData/$(AssemblyName)</_KspModDeployDir>
+      <_KspModDeployDir>$(KSPBT_GameRoot)/GameData/Thunderbolt</_KspModDeployDir>
     </PropertyGroup>
     <ItemGroup>
       <_ModDeployFiles Include="$(KSPBT_ModRoot)/**/*" />

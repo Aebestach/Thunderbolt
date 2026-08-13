@@ -5,7 +5,7 @@
 
 ## 模组简介 (Introduction)
 在 blackrack 的 **[True Volumetric Clouds (体积云)](https://www.patreon.com/c/blackrack/posts)** 中，雷暴闪电原本主要用于视觉表现。
-**雷劫**在此基础上增加了互动：飞船处于可放电云层下方时，闪电有概率击中船体，并可选地损毁部件。
+**雷劫**在此基础上增加了互动：飞船处于可放电云层下方时，闪电有概率击中船体，并可选地损毁部件。未安装 EVE / 体积云时也可使用大气模式——以 Kerbin 海平面大气密度为基准，密度更高的星球雷击概率增大，更低则减小；无大气天体不会雷击。
 
 若只想保留特效，可在难度设置中关闭伤害。此外提供通用避雷模块，供部件或 Kerbal Konstructs 静态避雷塔使用——附近的雷击会以较高概率改劈至避雷针，但并非绝对免疫。
 
@@ -18,18 +18,21 @@
 ![雷击效果](https://i.imgur.com/HoP45vf.png)
 ![雷击效果](https://i.imgur.com/XOwbfYR.png)
 
-## 必要前置 (Dependencies)
-* **[True Volumetric Clouds](https://www.patreon.com/c/blackrack/posts)** —— 带雷电的版本理论上均可；目前仅在 **v5** 中测试。
+## 建议模组 (Recommended)
+雷劫可独立运行。以下模组可增强体验：
+
+* **[True Volumetric Clouds](https://www.patreon.com/c/blackrack/posts)** —— 通过 `ThunderboltEVE.dll` 与云层同步雷击；目前在 **v5** 测试。
 
 ## 安装指南 (Installation)
-将压缩包内 `GameData` 下的 `Thunderbolt` 文件夹放入游戏根目录的 `GameData` 中即可。
+将压缩包内 `GameData` 下的文件夹放入游戏根目录的 `GameData` 中即可。**BlastFX** 已捆绑在压缩包中，提供雷击摧毁部件时的火球特效；若不需要可单独删除 `GameData/BlastFX`。请特别注意：该摧毁特效目前可能并不完美。
 
 ## 哪些载具会被雷劈 (Eligible Vessels)
 需同时满足：
 
 * 处于**飞行中 / 发射前 / 着陆 / 溅落 / EVA**等已加载状态（未打包卸载）
 * 位于有大气的天体上，且高度不超过大气层顶
-* 上方存在可放电的体积云层（覆盖与闪电频率达到难度设定阈值）
+* **EVE 模式：** 上方存在可放电体积云层（覆盖与闪电频率达到难度阈值）
+* **大气模式：** 处于较低大气带；风暴格点带时空随机，概率按相对 Kerbin 的海平面密度缩放
 
 舱外宇航员也可被击中；致死概率单独较低（可在难度设置中调整）。
 

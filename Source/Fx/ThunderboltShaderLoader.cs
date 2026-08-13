@@ -5,8 +5,9 @@ using UnityEngine;
 namespace Thunderbolt
 {
     /// <summary>
-    /// Loads Thunderbolt/ProceduralBolt from thunderboltshaders.bundle in this folder.
-    /// Shader source lives under Unity/ThunderboltShaders — not in GameData.
+    /// Loads Thunderbolt/ProceduralBolt from Thunderbolt.bundle.
+    /// Fireball destroy FX lives in the BlastFX mod (soft dependency).
+    /// Shader source lives under Source/Unity/ThunderboltShaders — not in GameData.
     /// </summary>
     [KSPAddon(KSPAddon.Startup.Instantly, true)]
     public class ThunderboltShaderLoader : MonoBehaviour
@@ -51,19 +52,12 @@ namespace Thunderbolt
             try
             {
                 string root = KSPUtil.ApplicationRootPath + "GameData/Thunderbolt/Shaders/";
-                string bundlePath = Path.Combine(root, "thunderboltshaders.bundle");
-                if (!File.Exists(bundlePath))
-                {
-                    // Also accept a Shabby-style name if the user built one.
-                    string shabPath = Path.Combine(root, "thunderbolt.shab");
-                    bundlePath = File.Exists(shabPath) ? shabPath : bundlePath;
-                }
-
+                string bundlePath = Path.Combine(root, "Thunderbolt.bundle");
                 if (!File.Exists(bundlePath))
                 {
                     Debug.Log(
-                        "[Thunderbolt] No thunderboltshaders.bundle — pierce bolts fall back to line FX until you build " +
-                        "GameData/Thunderbolt/Shaders/thunderboltshaders.bundle from ProceduralBolt.shader.");
+                        "[Thunderbolt] No Thunderbolt.bundle — pierce bolts fall back to line FX until you build " +
+                        "GameData/Thunderbolt/Shaders/Thunderbolt.bundle from ProceduralBolt.shader.");
                     return;
                 }
 
