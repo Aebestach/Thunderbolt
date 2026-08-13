@@ -18,13 +18,14 @@ Damage can be disabled in the difficulty settings if you only want the visuals. 
 ![Strike](https://i.imgur.com/HoP45vf.png)
 ![Strike](https://i.imgur.com/XOwbfYR.png)
 
-## Dependencies
-* **None required** for atmospheric mode (Kerbin-relative ASL density).
-* **[True Volumetric Clouds](https://www.patreon.com/c/blackrack/posts)** *(optional, recommended)* —— Cloud-synced strikes via `ThunderboltEVE.dll`; tested on **v5**.
-* **[BlastFX](https://github.com/Aebestach/BlastFX)** *(recommended)* —— Opaque fireball when a part is destroyed by lightning. Soft dependency: Thunderbolt still loads without it, but cover-destroy FX is skipped.
+## Recommended
+Thunderbolt runs on its own. These mods improve the experience:
+
+* **[True Volumetric Clouds](https://www.patreon.com/c/blackrack/posts)** —— Cloud-synced strikes via `ThunderboltEVE.dll`; tested on **v5**.
+* **[BlastFX](https://github.com/Aebestach/BlastFX)** —— Opaque fireball when a part is destroyed by lightning. Thunderbolt still loads without it, but cover-destroy FX is skipped.
 
 ## Installation
-Drop the `Thunderbolt` folder from the archive's `GameData` into your game's root `GameData` directory. Install **BlastFX** the same way if you want the fireball destroy effect.
+Drop the folders from the archive's `GameData` into your game's root `GameData` directory. **BlastFX** is bundled in the archive for the fireball when lightning destroys a part; you can delete `GameData/BlastFX` if you don't need it. Please note that this destroy effect is not perfect yet.
 
 ## Eligible Vessels
 A vessel may be struck when all of the following are true:

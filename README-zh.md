@@ -18,13 +18,14 @@
 ![雷击效果](https://i.imgur.com/HoP45vf.png)
 ![雷击效果](https://i.imgur.com/XOwbfYR.png)
 
-## 必要前置 (Dependencies)
-* **大气模式无需前置**（相对 Kerbin 海平面密度）。
-* **[True Volumetric Clouds](https://www.patreon.com/c/blackrack/posts)** *（可选，推荐）* —— 通过 `ThunderboltEVE.dll` 与云层同步雷击；目前在 **v5** 测试。
-* **[BlastFX](https://github.com/Aebestach/BlastFX)** *（推荐）* —— 雷击摧毁部件时的不透明火球特效。软依赖：未安装时雷劫仍可运行，但没有火球罩住再删除的效果。
+## 建议模组 (Recommended)
+雷劫可独立运行。以下模组可增强体验：
+
+* **[True Volumetric Clouds](https://www.patreon.com/c/blackrack/posts)** —— 通过 `ThunderboltEVE.dll` 与云层同步雷击；目前在 **v5** 测试。
+* **[BlastFX](https://github.com/Aebestach/BlastFX)** —— 雷击摧毁部件时的不透明火球特效。未安装时雷劫仍可运行，但没有火球罩住再删除的效果。
 
 ## 安装指南 (Installation)
-将压缩包内 `GameData` 下的 `Thunderbolt` 文件夹放入游戏根目录的 `GameData` 中即可。若需要火球摧毁特效，请同时安装 **BlastFX**。
+将压缩包内 `GameData` 下的文件夹放入游戏根目录的 `GameData` 中即可。**BlastFX** 已捆绑在压缩包中，提供雷击摧毁部件时的火球特效；若不需要可单独删除 `GameData/BlastFX`。请特别注意：该摧毁特效目前可能并不完美。
 
 ## 哪些载具会被雷劈 (Eligible Vessels)
 需同时满足：
