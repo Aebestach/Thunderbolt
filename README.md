@@ -22,7 +22,6 @@ Damage can be disabled in the difficulty settings if you only want the visuals. 
 Thunderbolt runs on its own. These mods improve the experience:
 
 * **[True Volumetric Clouds](https://www.patreon.com/c/blackrack/posts)** —— Cloud-synced strikes via `ThunderboltEVE.dll`; tested on **v5**.
-* **[BlastFX](https://github.com/Aebestach/BlastFX)** —— Opaque fireball when a part is destroyed by lightning. Thunderbolt still loads without it, but cover-destroy FX is skipped.
 
 ## Installation
 Drop the folders from the archive's `GameData` into your game's root `GameData` directory. **BlastFX** is bundled in the archive for the fireball when lightning destroys a part; you can delete `GameData/BlastFX` if you don't need it. Please note that this destroy effect is not perfect yet.
