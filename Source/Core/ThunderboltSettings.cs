@@ -86,7 +86,6 @@ namespace Thunderbolt
         // Debug
         public static bool DebugLogging => Visual?.debugLogging ?? false;
         public static bool DebugMode => Visual?.debugMode ?? false;
-        public static bool DebugApplyDamage => Visual?.debugApplyDamage ?? false;
         public static KeyCode DebugStrikeKey => Visual?.ResolvedStrikeKey ?? KeyCode.L;
 
         private static ThunderboltStrikeParameters Strike => ThunderboltStrikeParameters.Instance;

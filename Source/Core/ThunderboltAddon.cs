@@ -84,7 +84,7 @@ namespace Thunderbolt
                 ThunderboltSettings.Log("Forced strike (synthetic cloud point).");
             }
 
-            bool applyDamage = ThunderboltSettings.EnableDamage && ThunderboltSettings.DebugApplyDamage;
+            bool applyDamage = ThunderboltSettings.EnableDamage;
             StrikeVessel(vessel, sample, forced: true, applyDamage: applyDamage);
 
             if (ThunderboltSettings.ScreenMessages)
