@@ -10,8 +10,6 @@ namespace Thunderbolt
         private readonly Dictionary<uint, double> vesselCooldowns = new Dictionary<uint, double>();
         private float checkTimer;
         private bool loggedUnavailable;
-        private Rect debugWindowRect = new Rect(40f, 120f, 280f, 210f);
-        private string lastDebugStatus = "Ready";
 
         private void Start()
         {
@@ -28,7 +26,7 @@ namespace Thunderbolt
             if (ThunderboltSettings.DebugMode)
             {
                 ScreenMessages.PostScreenMessage(
-                    $"[Thunderbolt Debug] ON — press {ThunderboltSettings.DebugStrikeKey} or use the debug window to strike.",
+                    $"[Thunderbolt Debug] ON — press {ThunderboltSettings.DebugStrikeKey} to strike.",
                     5f,
                     ScreenMessageStyle.UPPER_CENTER);
             }
@@ -41,28 +39,11 @@ namespace Thunderbolt
                 return;
             }
 
-            if (ThunderboltSettings.DebugMode)
+            if (ThunderboltSettings.DebugMode
+                && !IsUiBlockingInput()
+                && Input.GetKeyDown(ThunderboltSettings.DebugStrikeKey))
             {
-                // Toggle window with RightAlt + D
-                if (Input.GetKey(KeyCode.RightAlt) && Input.GetKeyDown(KeyCode.D))
-                {
-                    ThunderboltSettings.SetDebugMode(false);
-                    ScreenMessages.PostScreenMessage("[Thunderbolt Debug] OFF", 2f, ScreenMessageStyle.UPPER_CENTER);
-                    return;
-                }
-
-                if (!IsUiBlockingInput() && Input.GetKeyDown(ThunderboltSettings.DebugStrikeKey))
-                {
-                    ForceStrikeActiveVessel();
-                }
-            }
-            else if (Input.GetKey(KeyCode.RightAlt) && Input.GetKeyDown(KeyCode.D))
-            {
-                ThunderboltSettings.SetDebugMode(true);
-                ScreenMessages.PostScreenMessage(
-                    $"[Thunderbolt Debug] ON — press {ThunderboltSettings.DebugStrikeKey} to strike.",
-                    3f,
-                    ScreenMessageStyle.UPPER_CENTER);
+                ForceStrikeActiveVessel();
             }
 
             float warp = TimeWarp.CurrentRate * Time.timeScale;
@@ -81,54 +62,12 @@ namespace Thunderbolt
             TryStrikeLoadedVessels();
         }
 
-        private void OnGUI()
-        {
-            if (!ThunderboltSettings.DebugMode || HighLogic.LoadedScene != GameScenes.FLIGHT)
-            {
-                return;
-            }
-
-            debugWindowRect = GUILayout.Window(
-                GetInstanceID(),
-                debugWindowRect,
-                DrawDebugWindow,
-                "Thunderbolt Debug",
-                GUILayout.MinWidth(260f));
-        }
-
-        private void DrawDebugWindow(int id)
-        {
-            Vessel vessel = FlightGlobals.ActiveVessel;
-            GUILayout.Label($"Storm mode: {StormSampler.ActiveModeLabel}");
-            GUILayout.Label($"Vessel: {(vessel != null ? vessel.vesselName : "none")}");
-            GUILayout.Label($"Key: {ThunderboltSettings.DebugStrikeKey}  |  RightAlt+D toggles debug");
-            GUILayout.Label(lastDebugStatus);
-
-            ThunderboltSettings.SetDebugApplyDamage(
-                GUILayout.Toggle(ThunderboltSettings.DebugApplyDamage, "Apply damage on debug strike"));
-
-            GUILayout.BeginHorizontal();
-            if (GUILayout.Button("Strike Now", GUILayout.Height(32f)))
-            {
-                ForceStrikeActiveVessel();
-            }
-
-            if (GUILayout.Button("Close", GUILayout.Height(32f), GUILayout.Width(70f)))
-            {
-                ThunderboltSettings.SetDebugMode(false);
-            }
-
-            GUILayout.EndHorizontal();
-
-            GUI.DragWindow();
-        }
-
         private void ForceStrikeActiveVessel()
         {
             Vessel vessel = FlightGlobals.ActiveVessel;
             if (vessel == null)
             {
-                lastDebugStatus = "No active vessel.";
+                ThunderboltSettings.Log("Forced strike skipped: no active vessel.");
                 return;
             }
 
@@ -136,16 +75,16 @@ namespace Thunderbolt
             if (StormSampler.TrySampleStormAboveVessel(vessel, out StormSample stormSample))
             {
                 sample = stormSample;
-                lastDebugStatus =
-                    $"Forced strike ({StormSampler.ActiveModeLabel} cov={sample.Coverage:F2} freq={sample.LightningFrequency:F2} storm={sample.StormStrength:F2}).";
+                ThunderboltSettings.Log(
+                    $"Forced strike ({StormSampler.ActiveModeLabel} cov={sample.Coverage:F2} freq={sample.LightningFrequency:F2} storm={sample.StormStrength:F2}).");
             }
             else
             {
                 sample = BuildSyntheticSample(vessel);
-                lastDebugStatus = "Forced strike (synthetic cloud point).";
+                ThunderboltSettings.Log("Forced strike (synthetic cloud point).");
             }
 
-            bool applyDamage = ThunderboltSettings.EnableDamage && ThunderboltSettings.DebugApplyDamage;
+            bool applyDamage = ThunderboltSettings.EnableDamage;
             StrikeVessel(vessel, sample, forced: true, applyDamage: applyDamage);
 
             if (ThunderboltSettings.ScreenMessages)

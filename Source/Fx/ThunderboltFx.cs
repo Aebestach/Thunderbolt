@@ -17,6 +17,9 @@ namespace Thunderbolt
         private readonly List<Material> boltMaterials = new List<Material>();
         private readonly List<Vector3> segmentAxes = new List<Vector3>();
 
+        /// <summary>~3 frames at 60 Hz, added on top of EVE LifeTime / the 0.5s fallback.</summary>
+        private const float ExtraHold = 3f / 60f;
+
         private Light pointLight;
         private LineRenderer fallbackLine;
         private float life;
@@ -106,7 +109,7 @@ namespace Thunderbolt
 
         private void BeginLifetime(EveLightningHints eveCfg)
         {
-            startLife = Mathf.Max(0.08f, eveCfg != null ? eveCfg.LifeTime : 0.5f);
+            startLife = Mathf.Max(0.08f, eveCfg != null ? eveCfg.LifeTime : 0.5f) + ExtraHold;
             life = startLife;
             float baseIntensity = eveCfg != null ? eveCfg.LightIntensity : 4.5f;
             startIntensity = baseIntensity * nightLightBoost;

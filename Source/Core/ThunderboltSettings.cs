@@ -86,7 +86,6 @@ namespace Thunderbolt
         // Debug
         public static bool DebugLogging => Visual?.debugLogging ?? false;
         public static bool DebugMode => Visual?.debugMode ?? false;
-        public static bool DebugApplyDamage => Visual?.debugApplyDamage ?? false;
         public static KeyCode DebugStrikeKey => Visual?.ResolvedStrikeKey ?? KeyCode.L;
 
         private static ThunderboltStrikeParameters Strike => ThunderboltStrikeParameters.Instance;
@@ -98,22 +97,6 @@ namespace Thunderbolt
         public static void Load()
         {
             Log("Using difficulty settings (EVE / NonEVE / Shared / Damage / Debug).");
-        }
-
-        public static void SetDebugMode(bool enabled)
-        {
-            if (Visual != null)
-            {
-                Visual.debugMode = enabled;
-            }
-        }
-
-        public static void SetDebugApplyDamage(bool enabled)
-        {
-            if (Visual != null)
-            {
-                Visual.debugApplyDamage = enabled;
-            }
         }
 
         /// <summary>

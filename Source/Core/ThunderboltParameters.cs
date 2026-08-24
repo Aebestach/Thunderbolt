@@ -415,9 +415,6 @@ namespace Thunderbolt
         [GameParameters.CustomParameterUI("#TB_ParamDebugMode", toolTip = "#TB_ParamDebugMode_tip")]
         public bool debugMode = false;
 
-        [GameParameters.CustomParameterUI("#TB_ParamDebugApplyDamage", toolTip = "#TB_ParamDebugApplyDamage_tip")]
-        public bool debugApplyDamage = false;
-
         [GameParameters.CustomStringParameterUI("#TB_ParamDebugStrikeKey", toolTip = "#TB_ParamDebugStrikeKey_tip")]
         public string debugStrikeKey = "L";
 
