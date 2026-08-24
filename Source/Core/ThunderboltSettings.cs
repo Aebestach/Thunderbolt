@@ -100,22 +100,6 @@ namespace Thunderbolt
             Log("Using difficulty settings (EVE / NonEVE / Shared / Damage / Debug).");
         }
 
-        public static void SetDebugMode(bool enabled)
-        {
-            if (Visual != null)
-            {
-                Visual.debugMode = enabled;
-            }
-        }
-
-        public static void SetDebugApplyDamage(bool enabled)
-        {
-            if (Visual != null)
-            {
-                Visual.debugApplyDamage = enabled;
-            }
-        }
-
         /// <summary>
         /// 1 at daytime, up to the given night multiplier after sunset / in darkness.
         /// </summary>
